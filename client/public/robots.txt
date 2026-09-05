@@ -1,0 +1,33 @@
+# https://sampark.tech/robots.txt
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /trust
+Allow: /how-it-works
+Allow: /setup-guide
+Allow: /use-cases
+Allow: /proof
+Allow: /pricing
+Allow: /faq
+Allow: /privacy
+Allow: /terms
+Allow: /refund
+Allow: /contact
+Allow: /delete-data
+
+# Auth and app surfaces — do not index
+Disallow: /login
+Disallow: /admin-login
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /inbox
+Disallow: /templates
+Disallow: /contacts
+Disallow: /notifications
+Disallow: /messages
+Disallow: /analytics
+Disallow: /settings
+Disallow: /billing
+Disallow: /api/
+
+Sitemap: https://sampark.tech/sitemap.xml

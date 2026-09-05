@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhatsApp Business API Platform for Teams | Sampark</title>
+    <meta name="description" content="Broadcast WhatsApp campaigns with Meta-approved templates, shared team inbox and live delivery analytics. Start free with Sampark." />
+    <meta name="keywords" content="WhatsApp Business API, WhatsApp marketing, WhatsApp broadcast, WhatsApp campaigns, Meta Cloud API, WhatsApp inbox, message templates, Sampark" />
+    <meta name="author" content="Sampark" />
+    <meta name="publisher" content="Sampark" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://sampark.tech/" />
+    <link rel="author" href="https://sampark.tech/" />
+    <link rel="publisher" href="https://sampark.tech/" />
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="64x64" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#075E54" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sampark" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:title" content="WhatsApp Business API Platform for Teams | Sampark" />
+    <meta property="og:description" content="Broadcast WhatsApp campaigns with Meta-approved templates, shared team inbox and live delivery analytics. Start free with Sampark." />
+    <meta property="og:url" content="https://sampark.tech/" />
+    <meta property="og:image" content="https://sampark.tech/og-image.jpg" />
+    <meta property="article:author" content="Sampark" />
+    <meta property="article:publisher" content="https://sampark.tech/" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="WhatsApp Business API Platform for Teams | Sampark" />
+    <meta name="twitter:description" content="Broadcast WhatsApp campaigns with Meta-approved templates, shared team inbox and live delivery analytics. Start free with Sampark." />
+    <meta name="twitter:image" content="https://sampark.tech/og-image.jpg" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LQX0MSZPW4"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-LQX0MSZPW4');
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Sampark",
+        "url": "https://sampark.tech",
+        "logo": "https://sampark.tech/favicon.png",
+        "email": "info@sampark.tech",
+        "telephone": "+91-9217730926"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Sampark",
+        "url": "https://sampark.tech/",
+        "description": "WhatsApp Business API platform for teams — broadcast campaigns, templates, shared inbox and analytics.",
+        "publisher": { "@type": "Organization", "name": "Sampark" }
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
+      />
+    </noscript>
+    <style>
+      .seo-bootstrap { display: none; max-width: 48rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #075E54; line-height: 1.65; }
+      .seo-bootstrap h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 1rem; }
+      .seo-bootstrap h2 { font-size: 1.25rem; margin: 1.75rem 0 0.75rem; }
+      .seo-bootstrap h3 { font-size: 1.05rem; margin: 1.25rem 0 0.5rem; }
+      .seo-bootstrap p, .seo-bootstrap li { margin: 0 0 0.85rem; color: #0a4f46; }
+      .seo-bootstrap ul { padding-left: 1.25rem; margin: 0 0 1rem; }
+      .seo-bootstrap a { color: #128C7E; }
+      .seo-bootstrap nav ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-bottom: 1.5rem; }
+      .seo-bootstrap nav a { font-weight: 600; text-decoration: none; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  </head>
+  <body>
+    <!--
+      Crawlable content for bots / SEO auditors that do not execute JavaScript.
+      React replaces #root on load for interactive users.
+      Keep H2 count under 10. Every anchor text is unique.
+    -->
+    <div id="root">
+      <div id="three-loader" style="position: fixed; inset: 0; background: radial-gradient(130% 110% at 50% 14%, #103F35 0%, #082720 40%, #030D0B 78%, #010605 100%); z-index: 9999; display: flex; justify-content: center; align-items: center; overflow: hidden; font-family: 'Poppins', sans-serif;">
+
+        <!-- ambient grain for depth -->
+        <div style="position:absolute;inset:0;opacity:0.045;pointer-events:none;mix-blend-mode:overlay;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;);"></div>
+
+        <!-- faint vignette rings so the scene reads as a "signal" field rather than an empty void -->
+        <div class="cnv-vignette" aria-hidden="true"></div>
+
+        <div class="cnv-stage">
+
+          <!-- three.js canvas sits behind the bubble mark, providing the orbiting message network -->
+          <div id="three-canvas-container" class="cnv-canvas-wrap"></div>
+
+          <!-- crisp vector mark: a chat bubble with a WhatsApp-style read receipt that draws in -->
+          <div class="cnv-bubble-wrap">
+            <svg class="cnv-bubble-svg" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                id="cnv-bubble-outline"
+                d="M56,26 L166,26 A22,22 0 0 1 188,48 L188,124 A22,22 0 0 1 166,146 L84,146 L58,176 L58,146 L54,146 A22,22 0 0 1 32,124 L32,48 A22,22 0 0 1 56,26 Z"
+                stroke="#7FE3B4" stroke-width="2.4" stroke-linejoin="round" fill="rgba(37,211,102,0.045)"
+              />
+              <path id="cnv-check-1" class="cnv-check" d="M74,90 L96,112 L128,68" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              <path id="cnv-check-2" class="cnv-check" d="M92,90 L114,112 L146,68" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="cnv-footer">
+          <div class="cnv-wordmark">
+            Sampark
+          </div>
+
+          <div class="cnv-progress-track">
+            <div id="loader-bar" class="cnv-progress-bar"></div>
+          </div>
+
+          <div class="cnv-status-row">
+            <span id="loader-status">Sending message</span>
+            <span id="loader-pct">0%</span>
+          </div>
+        </div>
+
+        <style>
+          .cnv-stage {
+            position: relative;
+            width: 300px;
+            height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .cnv-canvas-wrap {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+          }
+
+          .cnv-bubble-wrap {
+            position: relative;
+            z-index: 2;
+            width: 210px;
+            height: 182px;
+            animation: cnv-float 4.8s ease-in-out infinite;
+            filter: drop-shadow(0 0 22px rgba(37, 211, 102, 0.22));
+          }
+
+          .cnv-bubble-svg { width: 100%; height: 100%; overflow: visible; }
+
+          #cnv-bubble-outline {
+            stroke-dasharray: 620;
+            stroke-dashoffset: 620;
+            animation: cnv-draw-outline 1.4s cubic-bezier(0.5, 0, 0.15, 1) 0.15s forwards;
+          }
+
+          .cnv-check {
+            stroke: #8696A0;
+            opacity: 0;
+          }
+
+          .cnv-vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+              radial-gradient(circle at 50% 46%, transparent 0%, transparent 46%, rgba(37,211,102,0.035) 47%, transparent 48%),
+              radial-gradient(circle at 50% 46%, transparent 0%, transparent 58%, rgba(18,140,126,0.03) 59%, transparent 60%);
+          }
+
+          .cnv-footer {
+            position: absolute;
+            left: 50%;
+            bottom: 11%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.85rem;
+            animation: cnv-fade-up 0.8s ease both;
+            animation-delay: 0.2s;
+          }
+
+          .cnv-wordmark {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: #EAF7F1;
+          }
+          .cnv-wordmark .dot { color: #25D366; }
+          .cnv-wordmark .tld { font-weight: 500; color: #6FBBA0; }
+
+          .cnv-progress-track {
+            width: 220px;
+            height: 3px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+            position: relative;
+          }
+          .cnv-progress-bar {
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+            background: linear-gradient(90deg, #128C7E, #25D366);
+            border-radius: 2px;
+            transition: width 0.25s ease-out;
+          }
+
+          .cnv-status-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #5F9B8B;
+          }
+          #loader-pct { color: #25D366; min-width: 2.4em; text-align: right; }
+
+          @keyframes cnv-draw-outline { to { stroke-dashoffset: 0; } }
+          @keyframes cnv-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+          }
+          @keyframes cnv-fade-up {
+            from { opacity: 0; transform: translate(-50%, 8px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .cnv-bubble-wrap, #cnv-bubble-outline { animation: none !important; }
+          }
+        </style>
+
+        <script>
+          (function () {
+            // ---------------------------------------------------------------
+            // Signature moment: the loader tells Sampark's actual story —
+            // a message being sent, delivered, then read — using the same
+            // check states customers watch in the product's own analytics.
+            // Three.js drives an ambient "message network" behind the mark;
+            // the mark itself (SVG) renders the crisp read-receipt states.
+            // ---------------------------------------------------------------
+
+            var statusEl = document.getElementById('loader-status');
+            var pctEl = document.getElementById('loader-pct');
+            var barEl = document.getElementById('loader-bar');
+            var check1 = document.getElementById('cnv-check-1');
+            var check2 = document.getElementById('cnv-check-2');
+
+            [check1, check2].forEach(function (el) {
+              if (!el) return;
+              var len = el.getTotalLength();
+              el.style.strokeDasharray = len;
+              el.style.strokeDashoffset = len;
+            });
+
+            var GRAY = [134, 150, 160];   // WhatsApp sent/delivered grey
+            var BLUE = [83, 189, 235];    // WhatsApp read blue
+            function lerpColor(a, b, t) {
+              return 'rgb(' + Math.round(a[0] + (b[0] - a[0]) * t) + ','
+                + Math.round(a[1] + (b[1] - a[1]) * t) + ','
+                + Math.round(a[2] + (b[2] - a[2]) * t) + ')';
+            }
+
+            var CYCLE = 3.6; // seconds per send -> deliver -> read loop
+            var cycleStart = null;
+            var lastPhase = -1;
+            var launchDot = null; // set by three.js layer
+            var spawnRipple = null; // set by three.js layer
+
+            function setChecks(len1, off1, op1, len2, off2, op2, color) {
+              if (check1) { check1.style.strokeDashoffset = off1; check1.style.opacity = op1; check1.style.stroke = color; }
+              if (check2) { check2.style.strokeDashoffset = off2; check2.style.opacity = op2; check2.style.stroke = color; }
+            }
+
+            function tickBubble(tNow) {
+              if (cycleStart === null) cycleStart = tNow;
+              var elapsed = (tNow - cycleStart) % CYCLE;
+              var p = elapsed / CYCLE;
+
+              var len1 = check1 ? check1.getTotalLength() : 1;
+              var len2 = check2 ? check2.getTotalLength() : 1;
+
+              if (p < 0.30) {
+                // Sending: first check draws in
+                var k = p / 0.30;
+                var ease = 1 - Math.pow(1 - k, 3);
+                setChecks(len1, len1 * (1 - ease), ease, len2, len2, 0, 'rgb(134,150,160)');
+                if (statusEl) statusEl.textContent = 'Sending message';
+                if (lastPhase !== 0 && launchDot) { launchDot(); }
+                lastPhase = 0;
+              } else if (p < 0.60) {
+                // Delivered: second check draws in, still grey
+                var k2 = (p - 0.30) / 0.30;
+                var ease2 = 1 - Math.pow(1 - k2, 3);
+                setChecks(len1, 0, 1, len2, len2 * (1 - ease2), ease2, 'rgb(134,150,160)');
+                if (statusEl) statusEl.textContent = 'Delivered';
+                if (lastPhase !== 1 && spawnRipple) { spawnRipple(); }
+                lastPhase = 1;
+              } else if (p < 0.85) {
+                // Read: both checks tint blue
+                var k3 = (p - 0.60) / 0.25;
+                var col = lerpColor(GRAY, BLUE, Math.min(1, k3));
+                setChecks(len1, 0, 1, len2, 0, 1, col);
+                if (statusEl) statusEl.textContent = 'Read';
+                lastPhase = 2;
+              } else {
+                // Hold, then loop
+                setChecks(len1, 0, 1, len2, 0, 1, 'rgb(83,189,235)');
+                if (statusEl) statusEl.textContent = 'Read';
+                lastPhase = 3;
+              }
+            }
+
+            var progress = 0;
+            function tickProgress(dt) {
+              progress = Math.min(99, progress + (1 - progress / 100) * dt * 38);
+              var pctInt = Math.round(progress);
+              if (barEl) barEl.style.width = pctInt + '%';
+              if (pctEl) pctEl.textContent = pctInt + '%';
+            }
+
+            if (typeof THREE === 'undefined') {
+              // Graceful fallback: still animate the read-receipt mark without three.js
+              var lastT = null;
+              function fallbackLoop(ts) {
+                var tSec = ts / 1000;
+                if (lastT === null) lastT = tSec;
+                var dt = Math.min(tSec - lastT, 0.05);
+                lastT = tSec;
+                tickBubble(tSec);
+                tickProgress(dt);
+                if (document.getElementById('three-loader')) requestAnimationFrame(fallbackLoop);
+              }
+              requestAnimationFrame(fallbackLoop);
+              return;
+            }
+
+            var container = document.getElementById('three-canvas-container');
+            if (!container) return;
+
+            var W = 300, H = 260;
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
+            camera.position.set(0, 0.3, 9.5);
+
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(W, H);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            container.appendChild(renderer.domElement);
+
+            function glowTexture(rgb, soft) {
+              var c = document.createElement('canvas');
+              c.width = c.height = 128;
+              var ctx = c.getContext('2d');
+              var g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+              g.addColorStop(0, 'rgba(' + rgb + ',' + (soft ? 0.55 : 0.95) + ')');
+              g.addColorStop(0.4, 'rgba(' + rgb + ',' + (soft ? 0.2 : 0.4) + ')');
+              g.addColorStop(1, 'rgba(' + rgb + ',0)');
+              ctx.fillStyle = g;
+              ctx.fillRect(0, 0, 128, 128);
+              var tex = new THREE.Texture(c);
+              tex.needsUpdate = true;
+              return tex;
+            }
+
+            // Soft ambient core glow behind the vector mark
+            var aura = new THREE.Sprite(new THREE.SpriteMaterial({
+              map: glowTexture('37,211,102', true),
+              transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            aura.scale.set(5.6, 5.6, 1);
+            scene.add(aura);
+
+            // Rotating wireframe icosahedron — the "network" the bubble sits inside
+            var icoGeo = new THREE.IcosahedronGeometry(3.15, 1);
+            var icoMat = new THREE.MeshBasicMaterial({ color: 0x1E6E5F, wireframe: true, transparent: true, opacity: 0.22 });
+            var ico = new THREE.Mesh(icoGeo, icoMat);
+            scene.add(ico);
+
+            var icoOuterGeo = new THREE.IcosahedronGeometry(4.0, 0);
+            var icoOuterMat = new THREE.MeshBasicMaterial({ color: 0x25D366, wireframe: true, transparent: true, opacity: 0.09 });
+            var icoOuter = new THREE.Mesh(icoOuterGeo, icoOuterMat);
+            scene.add(icoOuter);
+
+            // Ring of orbiting "message" nodes representing contacts / team inbox
+            var RING_COUNT = 22;
+            var ringRadius = 4.55;
+            var ringDots = [];
+            var ringGeo = new THREE.BufferGeometry();
+            var ringPositions = new Float32Array(RING_COUNT * 3);
+            for (var i = 0; i < RING_COUNT; i++) {
+              var a = (i / RING_COUNT) * Math.PI * 2;
+              var x = Math.cos(a) * ringRadius;
+              var y = Math.sin(a) * ringRadius * 0.42;
+              var z = Math.sin(a * 1.7) * 0.6;
+              ringPositions[i * 3] = x;
+              ringPositions[i * 3 + 1] = y;
+              ringPositions[i * 3 + 2] = z;
+              ringDots.push({ angle: a, x: x, y: y, z: z });
+            }
+            ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPositions, 3));
+            var ringMat = new THREE.PointsMaterial({
+              color: 0x25D366, size: 0.11, map: glowTexture('37,211,102', false),
+              transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            var ringPoints = new THREE.Points(ringGeo, ringMat);
+            scene.add(ringPoints);
+
+            // Traveling "message" dot: flies from a ring node to the center on send
+            var travelTex = glowTexture('234,247,241', false);
+            var travelSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+              map: travelTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0
+            }));
+            travelSprite.scale.set(0.5, 0.5, 1);
+            scene.add(travelSprite);
+
+            var travel = null; // { from, t, duration }
+            launchDot = function () {
+              var idx = Math.floor(Math.random() * RING_COUNT);
+              var d = ringDots[idx];
+              travel = { from: new THREE.Vector3(d.x, d.y, d.z), t: 0, duration: 1.0 };
+            };
+
+            // Ripple rings pulse outward from the center on "delivered"
+            var ripples = [];
+            spawnRipple = function () {
+              var geo = new THREE.RingGeometry(0.08, 0.14, 48);
+              var mat = new THREE.MeshBasicMaterial({ color: 0x25D366, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+              var mesh = new THREE.Mesh(geo, mat);
+              mesh.rotation.x = Math.PI / 2 + 0.5;
+              scene.add(mesh);
+              ripples.push({ mesh: mesh, t: 0 });
+            };
+
+            var clock = new THREE.Clock();
+            var elapsedTime = 0; // FIX: track elapsed time manually instead of calling
+                                  // clock.getElapsedTime() (which itself calls getDelta()
+                                  // internally and was starving our own getDelta() call
+                                  // below of any meaningful time, keeping dt ~ 0 and the
+                                  // progress bar stuck near 0%).
+
+            function animate() {
+              if (!document.getElementById('three-canvas-container')) return;
+              requestAnimationFrame(animate);
+
+              // FIX: pull the frame delta exactly once per frame, then derive
+              // our own running clock from it. Previously this called
+              // clock.getElapsedTime() first (which secretly advances/reads
+              // the clock's internal delta tracking) and then clock.getDelta()
+              // right after, so the second call almost always returned ~0.
+              var dt = Math.min(clock.getDelta(), 0.05);
+              elapsedTime += dt;
+              var t = elapsedTime;
+
+              tickBubble(t);
+              tickProgress(dt);
+
+              ico.rotation.y = t * 0.16;
+              ico.rotation.x = Math.sin(t * 0.22) * 0.15;
+              icoOuter.rotation.y = -t * 0.1;
+              icoOuter.rotation.x = t * 0.07;
+
+              ringPoints.rotation.y = t * 0.22;
+              ringPoints.rotation.z = Math.sin(t * 0.3) * 0.08;
+
+              var auraPulse = 5.6 + Math.sin(t * 1.7) * 0.35;
+              aura.scale.set(auraPulse, auraPulse, 1);
+              aura.material.opacity = 0.55 + Math.sin(t * 1.7) * 0.15;
+
+              if (travel) {
+                travel.t += dt;
+                var k = Math.min(1, travel.t / travel.duration);
+                var ease = 1 - Math.pow(1 - k, 2);
+                travelSprite.position.lerpVectors(travel.from, new THREE.Vector3(0, 0, 0.4), ease);
+                travelSprite.material.opacity = k < 0.9 ? 0.9 : 0.9 * (1 - (k - 0.9) / 0.1);
+                if (k >= 1) { travel = null; travelSprite.material.opacity = 0; }
+              }
+
+              for (var j = ripples.length - 1; j >= 0; j--) {
+                var rp = ripples[j];
+                rp.t += dt;
+                var s = 1 + rp.t * 3.4;
+                rp.mesh.scale.set(s, s, s);
+                rp.mesh.material.opacity = Math.max(0, 0.55 - rp.t * 0.4);
+                if (rp.t > 1.5) {
+                  scene.remove(rp.mesh);
+                  rp.mesh.geometry.dispose();
+                  rp.mesh.material.dispose();
+                  ripples.splice(j, 1);
+                }
+              }
+
+              renderer.render(scene, camera);
+            }
+            animate();
+          })();
+        </script>
+      </div>
+      <main class="seo-bootstrap">
+        <nav aria-label="Primary">
+          <ul>
+            <li><a href="/" title="Sampark home">Home</a></li>
+            <li><a href="/features" title="Platform capabilities">Features</a></li>
+            <li><a href="/pricing" title="Subscription plans">Pricing</a></li>
+            <li><a href="/how-it-works" title="Product overview">How it works</a></li>
+            <li><a href="/setup-guide" title="Go-live checklist">Setup guide</a></li>
+            <li><a href="/use-cases" title="Industry examples">Use cases</a></li>
+            <li><a href="/trust" title="Security and compliance">Trust</a></li>
+            <li><a href="/proof" title="Delivery transparency">Proof</a></li>
+            <li><a href="/faq" title="Common questions">FAQ</a></li>
+            <li><a href="/contact" title="Talk to support">Contact</a></li>
+            <li><a href="/login" title="Sign in">Log in</a></li>
+          </ul>
+        </nav>
+
+        <h1>WhatsApp Business API Platform for Teams | Sampark</h1>
+        <p>
+          Sampark is a WhatsApp Business API platform built for sales, support and marketing teams
+          that want to turn conversations into revenue. Run broadcast campaigns, manage approved
+          message templates, reply from a shared team inbox, and track delivery analytics in one
+          dashboard — all on the official Meta WhatsApp Cloud API. The product is designed for
+          operators who already sell and support customers on WhatsApp and need a reliable business
+          layer on top of personal chat apps.
+        </p>
+        <p>
+          Unlike unofficial bulk-sender tools, Sampark connects to Meta's WhatsApp Business Platform
+          so your number keeps a verified business profile, quality rating visibility, and compliant
+          messaging limits. Teams across India use Sampark to launch offers, follow up leads, send
+          order updates, and support customers where they already chat every day. Whether you run a
+          D2C brand, a local service business, an education institute, or a multi-agent sales desk,
+          the same workspace covers outbound campaigns and inbound replies without switching tools.
+        </p>
+
+        <h2>Why teams choose this WhatsApp Business API platform</h2>
+        <p>
+          Growing businesses need more than a personal WhatsApp handset. They need a platform that
+          scales broadcasts safely, keeps history visible to the whole team, and shows whether each
+          message was sent, delivered, read or failed. Sampark gives product, growth and support
+          leads that operational clarity without forcing them to stitch together spreadsheets,
+          personal phones, and grey-market gateways that risk number bans.
+        </p>
+        <p>
+          A typical team starts by connecting one dedicated business number, importing opted-in
+          contacts, and submitting a first marketing or utility template for Meta review. Once
+          approved, they can schedule a campaign, watch delivery metrics update live, and hand hot
+          replies to agents in the shared inbox. Managers see the same conversation timeline as
+          agents, which reduces dropped leads and duplicate outreach.
+        </p>
+        <ul>
+          <li>Broadcast campaigns to opted-in contacts with schedule and retry controls</li>
+          <li>Template manager for Meta submission, approval status and variables</li>
+          <li>Shared inbox so multiple teammates can reply on one WhatsApp number</li>
+          <li>Contact lists, tags and segments for precise WhatsApp marketing</li>
+          <li>Real-time campaign analytics for delivery and engagement</li>
+          <li>Workspace roles so owners and agents stay within clear permissions</li>
+        </ul>
+
+        <h2>How the Sampark WhatsApp platform works</h2>
+        <p>
+          Connect your Meta Business and WhatsApp Business Account with guided embedded signup.
+          Create or migrate templates, import contacts, then launch your first campaign. Live status
+          updates help you measure what customers actually received. When you want a narrative walkthrough,
+          open the <a href="/how-it-works">step-by-step product tour</a>. When you are ready to configure
+          Business Manager, WABA tokens and templates, follow the
+          <a href="/setup-guide">API go-live checklist</a>.
+        </p>
+        <p>
+          Billing stays predictable: compare options on the
+          <a href="/pricing">subscription plan comparison</a> page. Every plan includes a free trial so
+          you can send real campaigns before you pay. Meta conversation fees are billed at Meta's
+          rates with no markup from Sampark; your subscription covers the software platform for teams,
+          not a hidden premium on each customer chat. After go-live, most teams iterate weekly: refine
+          template copy, tighten audience segments, and coach agents from inbox transcripts.
+        </p>
+
+        <h2>Campaigns, inbox and analytics in one workspace</h2>
+        <h3>Outbound campaigns that stay compliant</h3>
+        <p>
+          Marketing and utility messages must use Meta-approved templates. Sampark's editor helps you
+          structure headers, body variables, buttons and footer text, then tracks approval status so
+          you are not guessing whether a template is live. Campaigns can target lists or tagged
+          segments, and you can schedule sends for peak engagement windows in your market.
+        </p>
+        <h3>Shared inbox for the whole team</h3>
+        <p>
+          When customers reply, conversations land in one inbox. Agents can assign chats, keep context
+          across shifts, and avoid the chaos of forwarding screenshots between personal phones. That
+          is especially useful for high-intent leads who expect a fast human answer after a campaign.
+        </p>
+        <h3>Analytics you can show stakeholders</h3>
+        <p>
+          Sent, delivered, read and failed counts update as Meta events arrive. Share campaign reports
+          with founders or clients without exporting raw CSVs first. For a deeper look at transparency
+          and measurement, visit the <a href="/proof">campaign delivery transparency page</a>.
+        </p>
+
+        <h2>Explore more and get started</h2>
+        <p>
+          Browse the <a href="/features">complete platform capability list</a> for broadcasts, templates,
+          inbox and analytics. See how different departments apply the product in the
+          <a href="/use-cases">industry scenario library</a>. Read how we run on the
+          <a href="/trust">official Meta Cloud API commitment</a>, then skim
+          <a href="/faq">answers to frequent buyer questions</a> before you decide. Need a human?
+          Reach the team via the <a href="/contact">support and sales contact form</a>
+          or call +91 9217730926. Policy pages cover
+          <a href="/privacy">how we handle personal data</a>,
+          <a href="/terms">customer agreement terms</a>,
+          <a href="/refund">subscription refund rules</a>, and
+          <a href="/delete-data">account data removal requests</a>.
+        </p>
+        <p>
+          Founders, agencies and support managers use Sampark to scale WhatsApp without grey tools.
+          Technical readers can review Meta's
+          <a href="https://developers.facebook.com/docs/whatsapp/cloud-api" rel="noopener noreferrer" target="_blank" title="Meta WhatsApp Cloud API docs">Cloud API reference on developers.facebook.com</a>.
+          When your team is ready,
+          <a href="/login" title="Create or open a Sampark workspace">open a free Sampark trial account</a>
+          and turn WhatsApp into a measurable revenue channel. Share Sampark with a teammate:
+          <a href="https://wa.me/?text=Check%20out%20Sampark%20https%3A%2F%2Fsampark.tech%2F" rel="noopener noreferrer" target="_blank">Share via WhatsApp chat</a>,
+          <a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fsampark.tech%2F&amp;text=Sampark%20WhatsApp%20Business%20API%20Platform" rel="noopener noreferrer" target="_blank">Post on X</a>,
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fsampark.tech%2F" rel="noopener noreferrer" target="_blank">Share on LinkedIn</a>,
+          <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fsampark.tech%2F" rel="noopener noreferrer" target="_blank">Share on Facebook</a>.
+        </p>
+      </main>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

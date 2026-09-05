@@ -1,0 +1,27 @@
+node_modules
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+.env
+.env.local
+.env.*
+!.env.example
+dist
+build
+coverage
+*.log
+npm-debug.log*
+.cache
+.vscode/*
+!.vscode/extensions.json
+.idea
+Thumbs.db
+uploads/*
+!uploads/.gitkeep
+
+# Leftover Replit AI-agent scratch material (pasted chat transcripts,
+# screenshots) — not referenced by the app (the @assets Vite alias is
+# unused in client/src) and has previously contained hardcoded
+# credential-like values. Intentionally excluded from version control.
+attached_assets/
