@@ -5,12 +5,14 @@ Meta WhatsApp Business (Cloud) API. Users connect one or more WhatsApp
 Business numbers, manage message templates, run bulk broadcast campaigns to
 contact lists, and handle two-way conversations from a single dashboard.
 
-> **Note on naming:** this repository is mid-rebrand. The `package.json`
-> package name and some internal docs/comments still say `sampark` (a
-> previous product name — see git history for `Convora → Chat Stream →
-> Sampark`). No code or functionality has been renamed in this pass; this
-> README describes the app under its new product name, ChatbotAI, without
-> changing the underlying code.
+> **Note on naming:** all user-facing text (page titles, nav/footer, SEO
+> metadata, emails, error/paywall messages, etc.) now reads "ChatBoatAI".
+> A few purely technical, non-user-visible identifiers still say `sampark`
+> on purpose: the `package.json` package name, the Resend
+> transactional-email sender address, and the `support@`/`info@`/`billing@`
+> contact email addresses (all pending a decision on the new domain's
+> mailboxes) — see git history for the full previous naming lineage
+> (`Convora → Chat Stream → Sampark → ChatBoatAI`).
 
 ## Architecture
 

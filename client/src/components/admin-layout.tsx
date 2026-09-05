@@ -99,7 +99,7 @@ export function AdminLayout({ activeTab, onTabSelect, children }: AdminLayoutPro
           </div>
           <div>
             <div className="font-heading font-bold text-[15px]">
-              Sampark
+              ChatBoatAI
             </div>
             <div className="text-[10px] tracking-widest uppercase text-[#14205a]/45">
               Admin panel

@@ -204,7 +204,7 @@ export default function Billing() {
           amount: data.amount,
           currency: data.currency || "INR",
           order_id: data.orderId,
-          name: "Sampark",
+          name: "ChatBoatAI",
           description: `Upgrade to ${data.toPlan?.name ?? selectedPlan.name} — pay ${formatInr(data.differenceInr)}`,
           theme: { color: "#14205a" },
           handler: async (response: {
@@ -263,7 +263,7 @@ export default function Billing() {
       const razorpay = new window.Razorpay({
         key: data.keyId,
         subscription_id: data.subscriptionId,
-        name: "Sampark",
+        name: "ChatBoatAI",
         description: `${data.plan?.name ?? selectedPlan.name} — ${selectedPlan.priceLabel}/month`,
         theme: { color: "#14205a" },
         handler: async (response: {
@@ -630,7 +630,7 @@ function PaymentHistorySection() {
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="([^"]+)"/);
-      const filename = match?.[1] || `sampark-invoice-${paymentId}.html`;
+      const filename = match?.[1] || `chatboatai-invoice-${paymentId}.html`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

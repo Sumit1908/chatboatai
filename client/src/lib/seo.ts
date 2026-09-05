@@ -2,13 +2,13 @@ import { faqs, EMAIL_INFO, EMAIL_SUPPORT, HELP_NUMBER } from "./marketing-conten
 
 /** Canonical production origin — must match the live app host. */
 export const SITE_URL = "https://chatboatai.in";
-export const SITE_NAME = "Sampark";
-export const SITE_AUTHOR = "Sampark";
-export const SITE_PUBLISHER = "Sampark";
+export const SITE_NAME = "ChatBoatAI";
+export const SITE_AUTHOR = "ChatBoatAI";
+export const SITE_PUBLISHER = "ChatBoatAI";
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 export const DEFAULT_KEYWORDS =
-  "WhatsApp Business API, WhatsApp marketing, WhatsApp broadcast, WhatsApp campaigns, Meta Cloud API, WhatsApp inbox, message templates, Sampark";
+  "WhatsApp Business API, WhatsApp marketing, WhatsApp broadcast, WhatsApp campaigns, Meta Cloud API, WhatsApp inbox, message templates, ChatBoatAI";
 
 export type SeoRobots = "index, follow" | "noindex, nofollow" | "noindex, follow";
 
@@ -54,7 +54,7 @@ export function softwareApplicationJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Sampark",
+    name: "ChatBoatAI",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     url: SITE_URL,
@@ -108,7 +108,7 @@ export function contactPageJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "ContactPage",
-    name: "Contact Sampark",
+    name: "Contact ChatBoatAI",
     url: `${SITE_URL}/contact`,
     mainEntity: {
       "@type": "Organization",
@@ -127,19 +127,19 @@ function crumbs(...trail: Array<{ name: string; path: string }>) {
 export const CONTENT_SEO: Record<string, SeoPageConfig> = {
   "/": {
     path: "/",
-    title: "WhatsApp Business API Platform for Teams | Sampark",
+    title: "WhatsApp Business API Platform for Teams | ChatBoatAI",
     description:
-      "Broadcast WhatsApp campaigns with Meta-approved templates, shared team inbox and live delivery analytics. Start free with Sampark.",
+      "Broadcast WhatsApp campaigns with Meta-approved templates, shared team inbox and live delivery analytics. Start free with ChatBoatAI.",
     keywords: DEFAULT_KEYWORDS,
     jsonLd: [softwareApplicationJsonLd()],
   },
   "/features": {
     path: "/features",
-    title: "WhatsApp Marketing Features & Inbox | Sampark",
+    title: "WhatsApp Marketing Features & Inbox | ChatBoatAI",
     description:
-      "Explore Sampark features: broadcast campaigns, Meta template manager, shared inbox, contact lists, tags and real-time WhatsApp delivery analytics for growing teams.",
+      "Explore ChatBoatAI features: broadcast campaigns, Meta template manager, shared inbox, contact lists, tags and real-time WhatsApp delivery analytics for growing teams.",
     keywords:
-      "WhatsApp marketing features, WhatsApp broadcast, WhatsApp shared inbox, Meta template manager, WhatsApp analytics, Sampark",
+      "WhatsApp marketing features, WhatsApp broadcast, WhatsApp shared inbox, Meta template manager, WhatsApp analytics, ChatBoatAI",
     jsonLd: [
       crumbs({ name: "Features", path: "/features" }),
       softwareApplicationJsonLd(),
@@ -147,56 +147,56 @@ export const CONTENT_SEO: Record<string, SeoPageConfig> = {
   },
   "/trust": {
     path: "/trust",
-    title: "Trusted Official Meta WhatsApp API | Sampark",
+    title: "Trusted Official Meta WhatsApp API | ChatBoatAI",
     description:
-      "Sampark runs on the official Meta WhatsApp Business Platform. Transparent delivery, secure workspaces and reliable Cloud API messaging your customers can trust.",
+      "ChatBoatAI runs on the official Meta WhatsApp Business Platform. Transparent delivery, secure workspaces and reliable Cloud API messaging your customers can trust.",
     keywords:
-      "official WhatsApp Business API, Meta Cloud API, WhatsApp trust, secure WhatsApp messaging, Sampark",
+      "official WhatsApp Business API, Meta Cloud API, WhatsApp trust, secure WhatsApp messaging, ChatBoatAI",
     jsonLd: [crumbs({ name: "Trust", path: "/trust" })],
   },
   "/how-it-works": {
     path: "/how-it-works",
-    title: "How WhatsApp Campaigns Work on Sampark",
+    title: "How WhatsApp Campaigns Work on ChatBoatAI",
     description:
-      "Connect Meta API, create approved templates, then launch and track WhatsApp broadcast campaigns in real time with Sampark — from signup to first send in days.",
+      "Connect Meta API, create approved templates, then launch and track WhatsApp broadcast campaigns in real time with ChatBoatAI — from signup to first send in days.",
     keywords:
-      "how WhatsApp campaigns work, WhatsApp broadcast steps, Meta API setup, WhatsApp templates, Sampark",
+      "how WhatsApp campaigns work, WhatsApp broadcast steps, Meta API setup, WhatsApp templates, ChatBoatAI",
     jsonLd: [crumbs({ name: "How it works", path: "/how-it-works" })],
   },
   "/setup-guide": {
     path: "/setup-guide",
-    title: "WhatsApp Business API Setup Guide | Sampark",
+    title: "WhatsApp Business API Setup Guide | ChatBoatAI",
     description:
-      "Step-by-step guide to connect Meta Business, WhatsApp Cloud API, message templates and your first Sampark campaign so your team can go live in days, not weeks.",
+      "Step-by-step guide to connect Meta Business, WhatsApp Cloud API, message templates and your first ChatBoatAI campaign so your team can go live in days, not weeks.",
     keywords:
-      "WhatsApp Business API setup, Meta embedded signup, WABA setup guide, WhatsApp Cloud API, Sampark",
+      "WhatsApp Business API setup, Meta embedded signup, WABA setup guide, WhatsApp Cloud API, ChatBoatAI",
     jsonLd: [crumbs({ name: "Setup guide", path: "/setup-guide" })],
   },
   "/use-cases": {
     path: "/use-cases",
-    title: "WhatsApp Business Use Cases for Teams | Sampark",
+    title: "WhatsApp Business Use Cases for Teams | ChatBoatAI",
     description:
-      "See how sales, support and marketing teams use Sampark for WhatsApp broadcasts, follow-ups, order notifications and shared inbox replies that convert conversations.",
+      "See how sales, support and marketing teams use ChatBoatAI for WhatsApp broadcasts, follow-ups, order notifications and shared inbox replies that convert conversations.",
     keywords:
-      "WhatsApp use cases, WhatsApp for sales, WhatsApp customer support, WhatsApp notifications, Sampark",
+      "WhatsApp use cases, WhatsApp for sales, WhatsApp customer support, WhatsApp notifications, ChatBoatAI",
     jsonLd: [crumbs({ name: "Use cases", path: "/use-cases" })],
   },
   "/proof": {
     path: "/proof",
     title: "WhatsApp Delivery Results & Campaign Proof",
     description:
-      "Real delivery transparency on WhatsApp: sent, delivered, read and failed tracked live per campaign with Sampark analytics so you always know what customers received.",
+      "Real delivery transparency on WhatsApp: sent, delivered, read and failed tracked live per campaign with ChatBoatAI analytics so you always know what customers received.",
     keywords:
-      "WhatsApp delivery reports, WhatsApp read receipts, campaign analytics, message tracking, Sampark",
+      "WhatsApp delivery reports, WhatsApp read receipts, campaign analytics, message tracking, ChatBoatAI",
     jsonLd: [crumbs({ name: "Proof", path: "/proof" })],
   },
   "/pricing": {
     path: "/pricing",
     title: "WhatsApp API Pricing Plans & Free Trial",
     description:
-      "Simple Sampark plans for WhatsApp Business API broadcasting. Free trial included — Meta conversation fees billed at Meta rates with no platform markup on messages.",
+      "Simple ChatBoatAI plans for WhatsApp Business API broadcasting. Free trial included — Meta conversation fees billed at Meta rates with no platform markup on messages.",
     keywords:
-      "WhatsApp API pricing, WhatsApp Business API cost, Sampark plans, WhatsApp free trial, Meta conversation fees",
+      "WhatsApp API pricing, WhatsApp Business API cost, ChatBoatAI plans, WhatsApp free trial, Meta conversation fees",
     jsonLd: [
       crumbs({ name: "Pricing", path: "/pricing" }),
       softwareApplicationJsonLd(),
@@ -204,52 +204,52 @@ export const CONTENT_SEO: Record<string, SeoPageConfig> = {
   },
   "/faq": {
     path: "/faq",
-    title: "WhatsApp Business API FAQ Answered | Sampark",
+    title: "WhatsApp Business API FAQ Answered | ChatBoatAI",
     description:
-      "Answers about official WhatsApp Business API, Meta conversation charges, template approval times, shared team inbox and Sampark free trials — clear and up to date.",
+      "Answers about official WhatsApp Business API, Meta conversation charges, template approval times, shared team inbox and ChatBoatAI free trials — clear and up to date.",
     keywords:
-      "WhatsApp Business API FAQ, Meta conversation charges, WhatsApp template approval, Sampark help",
+      "WhatsApp Business API FAQ, Meta conversation charges, WhatsApp template approval, ChatBoatAI help",
     jsonLd: [crumbs({ name: "FAQ", path: "/faq" }), faqPageJsonLd()],
   },
   "/contact": {
     path: "/contact",
-    title: "Contact Sampark Support | WhatsApp API Help",
+    title: "Contact ChatBoatAI Support | WhatsApp API Help",
     description:
-      "Contact Sampark for WhatsApp Business API setup, billing and support. Call +91 9217730926 or email info@sampark.tech and support@sampark.tech — we reply within 24 hours.",
+      "Contact ChatBoatAI for WhatsApp Business API setup, billing and support. Call +91 9336791807 or email thecleverwork@gmail.com — we reply within 24 hours.",
     keywords:
-      "contact Sampark, WhatsApp API support, Sampark help desk, billing support, Sampark phone",
+      "contact ChatBoatAI, WhatsApp API support, ChatBoatAI help desk, billing support, ChatBoatAI phone",
     jsonLd: [crumbs({ name: "Contact", path: "/contact" }), contactPageJsonLd()],
   },
   "/privacy": {
     path: "/privacy",
-    title: "Privacy Policy | Sampark WhatsApp Platform",
+    title: "Privacy Policy | ChatBoatAI WhatsApp Platform",
     description:
-      "How Sampark collects, uses and protects personal data on our WhatsApp Business API broadcasting platform. Read our privacy practices before you create an account.",
-    keywords: "Sampark privacy policy, WhatsApp data privacy, personal data protection",
+      "How ChatBoatAI collects, uses and protects personal data on our WhatsApp Business API broadcasting platform. Read our privacy practices before you create an account.",
+    keywords: "ChatBoatAI privacy policy, WhatsApp data privacy, personal data protection",
     jsonLd: [crumbs({ name: "Privacy Policy", path: "/privacy" })],
   },
   "/terms": {
     path: "/terms",
-    title: "Terms of Service | Sampark WhatsApp Platform",
+    title: "Terms of Service | ChatBoatAI WhatsApp Platform",
     description:
-      "Terms governing use of Sampark’s WhatsApp Business API platform, including accounts, acceptable use, billing, service limits and your responsibilities as a customer.",
-    keywords: "Sampark terms of service, WhatsApp platform terms, acceptable use policy",
+      "Terms governing use of ChatBoatAI’s WhatsApp Business API platform, including accounts, acceptable use, billing, service limits and your responsibilities as a customer.",
+    keywords: "ChatBoatAI terms of service, WhatsApp platform terms, acceptable use policy",
     jsonLd: [crumbs({ name: "Terms of Service", path: "/terms" })],
   },
   "/refund": {
     path: "/refund",
-    title: "Refund Policy for Sampark Billing Plans",
+    title: "Refund Policy for ChatBoatAI Billing Plans",
     description:
-      "Sampark refund policy for subscription billing on our WhatsApp Business API platform. Learn when refunds apply, what is excluded, and how to request billing help.",
-    keywords: "Sampark refund policy, WhatsApp API billing refund, subscription refund",
+      "ChatBoatAI refund policy for subscription billing on our WhatsApp Business API platform. Learn when refunds apply, what is excluded, and how to request billing help.",
+    keywords: "ChatBoatAI refund policy, WhatsApp API billing refund, subscription refund",
     jsonLd: [crumbs({ name: "Refund Policy", path: "/refund" })],
   },
   "/delete-data": {
     path: "/delete-data",
-    title: "User Data Deletion Requests | Sampark Privacy",
+    title: "User Data Deletion Requests | ChatBoatAI Privacy",
     description:
-      "Request deletion of your Sampark account and associated WhatsApp workspace data. Steps for GDPR-style user data removal requests, timelines and support contacts.",
-    keywords: "data deletion request, GDPR delete account, Sampark delete data, WhatsApp data removal",
+      "Request deletion of your ChatBoatAI account and associated WhatsApp workspace data. Steps for GDPR-style user data removal requests, timelines and support contacts.",
+    keywords: "data deletion request, GDPR delete account, ChatBoatAI delete data, WhatsApp data removal",
     jsonLd: [crumbs({ name: "Data Deletion", path: "/delete-data" })],
   },
 };
@@ -258,14 +258,14 @@ export const CONTENT_SEO: Record<string, SeoPageConfig> = {
 export const AUTH_SEO: Record<string, SeoPageConfig> = {
   "/login": {
     path: "/login",
-    title: "Log In | Sampark",
-    description: "Sign in to your Sampark WhatsApp Business API workspace.",
+    title: "Log In | ChatBoatAI",
+    description: "Sign in to your ChatBoatAI WhatsApp Business API workspace.",
     robots: "noindex, nofollow",
   },
   "/admin-login": {
     path: "/admin-login",
-    title: "Admin Log In | Sampark",
-    description: "Admin sign-in for the Sampark platform.",
+    title: "Admin Log In | ChatBoatAI",
+    description: "Admin sign-in for the ChatBoatAI platform.",
     robots: "noindex, nofollow",
   },
 };

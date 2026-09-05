@@ -46,13 +46,13 @@ export async function buildPaymentInvoiceHtml(params: {
         : typeLabel(payment.type));
 
   const amountLabel = formatPriceLabel(payment.amountInr);
-  const filename = `sampark-invoice-${invoiceNo}.html`;
+  const filename = `chatboatai-invoice-${invoiceNo}.html`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(invoiceNo)} — Sampark</title>
+  <title>${escapeHtml(invoiceNo)} — ChatBoatAI</title>
   <style>
     :root { color-scheme: light; }
     body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #0f3d36; margin: 0; background: #f7fbf8; }
@@ -86,7 +86,7 @@ export async function buildPaymentInvoiceHtml(params: {
   <div class="page">
     <div class="header">
       <div>
-        <div class="brand">Sampark</div>
+        <div class="brand">ChatBoatAI</div>
         <div class="muted">WhatsApp Business API platform<br/>Payment receipt / tax invoice</div>
       </div>
       <div class="right">
@@ -139,8 +139,8 @@ export async function buildPaymentInvoiceHtml(params: {
     </table>
 
     <div class="footer">
-      This receipt confirms payment collected via Razorpay for Sampark. GST, if applicable, is included as per your checkout.
-      For support contact your Sampark account manager or reply from your registered email.
+      This receipt confirms payment collected via Razorpay for ChatBoatAI. GST, if applicable, is included as per your checkout.
+      For support contact your ChatBoatAI account manager or reply from your registered email.
       <br/><br/>
       Generated on ${escapeHtml(new Date().toLocaleString("en-IN"))}.
     </div>

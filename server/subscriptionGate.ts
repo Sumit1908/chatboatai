@@ -17,11 +17,11 @@ async function getSubscriptionRequiredMessage(): Promise<string> {
   try {
     const cheapest = await getCheapestActivePlan();
     const price = cheapest?.priceLabel ?? "a paid plan";
-    const message = `Your plan has expired or your trial has ended. Subscribe starting at ${price}/month to continue using Sampark.`;
+    const message = `Your plan has expired or your trial has ended. Subscribe starting at ${price}/month to continue using ChatBoatAI.`;
     cachedPaywallMessage = { message, at: now };
     return message;
   } catch {
-    return "Your plan has expired or your trial has ended. Subscribe to continue using Sampark.";
+    return "Your plan has expired or your trial has ended. Subscribe to continue using ChatBoatAI.";
   }
 }
 
@@ -137,4 +137,4 @@ export {
 };
 
 export const SUBSCRIPTION_REQUIRED_MESSAGE =
-  "Your plan has expired or your trial has ended. Subscribe to continue using Sampark.";
+  "Your plan has expired or your trial has ended. Subscribe to continue using ChatBoatAI.";

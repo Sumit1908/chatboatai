@@ -141,7 +141,7 @@ export default function PricingPage() {
           <FadeIn>
             <h2 className="text-2xl font-heading font-bold text-[#075E54] mb-4 text-center">Billing FAQ</h2>
             <p className="text-center text-[#075E54]/55 mb-8">
-              Meta conversation charges are separate and billed at Meta&apos;s rates. Your Sampark plan covers the platform only.
+              Meta conversation charges are separate and billed at Meta&apos;s rates. Your ChatBoatAI plan covers the platform only.
             </p>
             <div className="space-y-4">
               {[

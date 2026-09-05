@@ -162,7 +162,7 @@ const useCases = [
 const faqs = [
   {
     q: "Is this the official WhatsApp Business API?",
-    a: "Yes. Sampark runs entirely on the official Meta WhatsApp Business Platform. Your number gets a verified business profile, and there's no risk of the bans that come with unofficial bulk-sender tools.",
+    a: "Yes. ChatBoatAI runs entirely on the official Meta WhatsApp Business Platform. Your number gets a verified business profile, and there's no risk of the bans that come with unofficial bulk-sender tools.",
   },
   {
     q: "Do I need a new phone number?",
@@ -174,7 +174,7 @@ const faqs = [
   },
   {
     q: "How fast do templates get approved?",
-    a: "Most templates are reviewed by Meta within minutes to a few hours. Sampark shows the live approval status of every template, and our team helps you fix rejected ones.",
+    a: "Most templates are reviewed by Meta within minutes to a few hours. ChatBoatAI shows the live approval status of every template, and our team helps you fix rejected ones.",
   },
   {
     q: "Can my whole team use one number?",
@@ -224,7 +224,7 @@ const testimonials = [
   },
   {
     quote:
-      "Clients ask for WhatsApp delivery proofs. Sampark gives us clean campaign reports without custom tooling.",
+      "Clients ask for WhatsApp delivery proofs. ChatBoatAI gives us clean campaign reports without custom tooling.",
     name: "Neha M.",
     role: "Agency founder",
   },
@@ -276,7 +276,7 @@ function WaMark({ className = "h-9 w-9" }: { className?: string }) {
     <div
       className={`flex items-center justify-center rounded-full bg-[#25D366] text-white shadow-md shadow-[#25D366]/30 ${className}`}
       role="img"
-      aria-label="Sampark WhatsApp logo"
+      aria-label="ChatBoatAI WhatsApp logo"
     >
       <FaWhatsapp className="h-[58%] w-[58%]" aria-hidden />
     </div>
@@ -517,7 +517,7 @@ export default function Landing() {
               </h2>
               <p className="text-lg text-white/65">
                 WhatsApp is where your buyers live — but only if your stack is official, transparent, and
-                accountable. Here&apos;s how Sampark earns that trust.
+                accountable. Here&apos;s how ChatBoatAI earns that trust.
               </p>
             </div>
           </FadeIn>
@@ -567,7 +567,7 @@ export default function Landing() {
                 Everything WhatsApp marketing needs, in one place
               </h2>
               <p className="text-lg text-[#075E54]/55">
-                Sampark replaces the mess of spreadsheets, broadcast lists and manual follow-ups with a
+                ChatBoatAI replaces the mess of spreadsheets, broadcast lists and manual follow-ups with a
                 single, compliant command centre.
               </p>
             </div>
@@ -640,7 +640,7 @@ export default function Landing() {
               <p className="text-[#25D366] text-sm font-medium tracking-wide uppercase mb-3">Who it&apos;s for</p>
               <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4 text-[#075E54]">Built for teams that sell in conversations</h2>
               <p className="text-lg text-[#075E54]/55">
-                WhatsApp is where Indian buyers actually respond. Sampark turns those conversations into a
+                WhatsApp is where Indian buyers actually respond. ChatBoatAI turns those conversations into a
                 pipeline.
               </p>
             </div>
@@ -903,7 +903,7 @@ export default function Landing() {
                 </a>
                 <p className="mt-6 text-sm text-white/50">
                   <a href="#trust" className="underline underline-offset-2 hover:text-white/70">
-                    See why teams trust Sampark
+                    See why teams trust ChatBoatAI
                   </a>
                 </p>
               </div>
@@ -918,7 +918,7 @@ export default function Landing() {
             <div className="col-span-2 sm:col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
                 <WaMark className="h-8 w-8" />
-                <span className="font-heading font-bold text-[#075E54]">Sampark</span>
+                <span className="font-heading font-bold text-[#075E54]">ChatBoatAI</span>
               </div>
               <p className="text-sm text-[#075E54]/50">
                 The WhatsApp Business API platform for teams that sell in conversations.
@@ -929,7 +929,7 @@ export default function Landing() {
               <ul className="space-y-2 text-sm text-[#075E54]/50">
                 {MARKETING_NAV.map(({ href, label }) => (
                   <li key={href}>
-                    <Link href={href} title={`${label} — Sampark`} className="hover:text-[#075E54]">{label}</Link>
+                    <Link href={href} title={`${label} — ChatBoatAI`} className="hover:text-[#075E54]">{label}</Link>
                   </li>
                 ))}
               </ul>
@@ -937,18 +937,18 @@ export default function Landing() {
             <div>
               <p className="font-semibold mb-4 text-[#075E54] text-sm">Legal</p>
               <ul className="space-y-2 text-sm text-[#075E54]/50">
-                <li><Link href="/privacy" title="Sampark Privacy Policy" className="hover:text-[#075E54]">Privacy Policy</Link></li>
-                <li><Link href="/terms" title="Sampark Terms of Service" className="hover:text-[#075E54]">Terms of Service</Link></li>
-                <li><Link href="/refund" title="Sampark Refund Policy" className="hover:text-[#075E54]">Refund Policy</Link></li>
+                <li><Link href="/privacy" title="ChatBoatAI Privacy Policy" className="hover:text-[#075E54]">Privacy Policy</Link></li>
+                <li><Link href="/terms" title="ChatBoatAI Terms of Service" className="hover:text-[#075E54]">Terms of Service</Link></li>
+                <li><Link href="/refund" title="ChatBoatAI Refund Policy" className="hover:text-[#075E54]">Refund Policy</Link></li>
                 <li><Link href="/delete-data" title="Request user data deletion" className="hover:text-[#075E54]">Data Deletion</Link></li>
               </ul>
             </div>
             <div>
               <p className="font-semibold mb-4 text-[#075E54] text-sm">Support</p>
               <ul className="space-y-2 text-sm text-[#075E54]/50">
-                <li><Link href="/contact" title="Contact Sampark support" className="hover:text-[#075E54]">Contact Us</Link></li>
+                <li><Link href="/contact" title="Contact ChatBoatAI support" className="hover:text-[#075E54]">Contact Us</Link></li>
                 <li>
-                  <a href={`tel:+91${HELP_NUMBER}`} title="Call Sampark support" className="hover:text-[#075E54] flex items-center gap-1.5">
+                  <a href={`tel:+91${HELP_NUMBER}`} title="Call ChatBoatAI support" className="hover:text-[#075E54] flex items-center gap-1.5">
                     <Phone className="h-3.5 w-3.5 text-[#25D366]" /> +91 {HELP_NUMBER}
                   </a>
                 </li>
@@ -956,9 +956,9 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-[#075E54]/10 mt-8 pt-8 flex flex-col gap-4">
-            <SocialShare title="WhatsApp Business API Platform for Teams | Sampark" />
+            <SocialShare title="WhatsApp Business API Platform for Teams | ChatBoatAI" />
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-[#075E54]/40 text-center sm:text-left">
-              <p>&copy; {new Date().getFullYear()} Sampark. All rights reserved.</p>
+              <p>&copy; {new Date().getFullYear()} ChatBoatAI. All rights reserved.</p>
               <p className="flex items-center justify-center gap-1.5 max-w-md sm:max-w-none flex-wrap">
                 <FaWhatsapp className="h-3.5 w-3.5 text-[#25D366]" /> Built on the official{" "}
                 <a

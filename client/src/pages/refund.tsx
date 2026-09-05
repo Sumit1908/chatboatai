@@ -15,7 +15,7 @@ export default function Refund() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <MessageSquare className="h-5 w-5" />
               </div>
-              <span className="text-xl font-bold">Sampark</span>
+              <span className="text-xl font-bold">ChatBoatAI</span>
             </div>
           </Link>
           <Link href="/">

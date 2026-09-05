@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { CONTENT_SEO } from "@/lib/seo";
 
-/** Public GA4 measurement ID for Sampark content pages. */
+/** Public GA4 measurement ID for ChatBoatAI content pages. */
 export const GA_MEASUREMENT_ID = "G-LQX0MSZPW4";
 
 declare global {

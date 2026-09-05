@@ -187,7 +187,7 @@ function AuthenticatedApp() {
             <div className="flex items-center gap-2">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <div className="hidden md:flex flex-col">
-                <span className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80">Sampark Workspace</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80">ChatBoatAI Workspace</span>
                 <span className="text-xs text-muted-foreground">WhatsApp campaigns, inbox and analytics</span>
               </div>
             </div>

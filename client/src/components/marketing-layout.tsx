@@ -48,7 +48,7 @@ export function WaMark({ className = "h-9 w-9" }: { className?: string }) {
     <div
       className={`flex items-center justify-center rounded-full bg-[#25D366] text-white shadow-md shadow-[#25D366]/30 ${className}`}
       role="img"
-      aria-label="Sampark WhatsApp logo"
+      aria-label="ChatBoatAI WhatsApp logo"
     >
       <FaWhatsapp className="h-[58%] w-[58%]" aria-hidden />
     </div>
@@ -160,7 +160,7 @@ function MarketingNav() {
           <div className="flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0">
             <WaMark className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" />
             <span className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[#075E54] truncate">
-              Sampark
+              ChatBoatAI
             </span>
           </div>
         </Link>
@@ -169,7 +169,7 @@ function MarketingNav() {
             <Link
               key={href}
               href={href}
-              title={`${label} — Sampark WhatsApp Business API`}
+              title={`${label} — ChatBoatAI WhatsApp Business API`}
               className={`text-sm font-medium transition-colors ${
                 location === href ? "text-[#075E54]" : "text-[#075E54]/60 hover:text-[#075E54]"
               }`}
@@ -204,7 +204,7 @@ function MarketingNav() {
               <SheetHeader className="border-b border-[#075E54]/10 px-5 py-4 text-left">
                 <SheetTitle className="flex items-center gap-2 text-[#075E54]">
                   <WaMark className="h-8 w-8" />
-                  <span className="font-heading font-bold">Sampark</span>
+                  <span className="font-heading font-bold">ChatBoatAI</span>
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -259,7 +259,7 @@ function MarketingFooter() {
           <div className="col-span-2 sm:col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <WaMark className="h-8 w-8" />
-              <span className="font-heading font-bold text-[#075E54]">Sampark</span>
+              <span className="font-heading font-bold text-[#075E54]">ChatBoatAI</span>
             </div>
             <p className="text-sm text-[#075E54]/50">
               The WhatsApp Business API platform for teams that sell in conversations.
@@ -270,7 +270,7 @@ function MarketingFooter() {
             <ul className="space-y-2 text-sm text-[#075E54]/50">
               {MARKETING_NAV.map(({ href, label }) => (
                 <li key={href}>
-                  <Link href={href} title={`${label} — Sampark`} className="hover:text-[#075E54]">
+                  <Link href={href} title={`${label} — ChatBoatAI`} className="hover:text-[#075E54]">
                     {label}
                   </Link>
                 </li>
@@ -280,9 +280,9 @@ function MarketingFooter() {
           <div>
             <p className="font-semibold mb-4 text-[#075E54] text-sm">Legal</p>
             <ul className="space-y-2 text-sm text-[#075E54]/50">
-              <li><Link href="/privacy" title="Sampark Privacy Policy" className="hover:text-[#075E54]">Privacy Policy</Link></li>
-              <li><Link href="/terms" title="Sampark Terms of Service" className="hover:text-[#075E54]">Terms of Service</Link></li>
-              <li><Link href="/refund" title="Sampark Refund Policy" className="hover:text-[#075E54]">Refund Policy</Link></li>
+              <li><Link href="/privacy" title="ChatBoatAI Privacy Policy" className="hover:text-[#075E54]">Privacy Policy</Link></li>
+              <li><Link href="/terms" title="ChatBoatAI Terms of Service" className="hover:text-[#075E54]">Terms of Service</Link></li>
+              <li><Link href="/refund" title="ChatBoatAI Refund Policy" className="hover:text-[#075E54]">Refund Policy</Link></li>
               <li><Link href="/delete-data" title="Request user data deletion" className="hover:text-[#075E54]">Data Deletion</Link></li>
             </ul>
           </div>
@@ -311,7 +311,7 @@ function MarketingFooter() {
         <div className="border-t border-[#075E54]/10 mt-8 pt-8 flex flex-col gap-4">
           <SocialShare />
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-[#075E54]/40 text-center sm:text-left">
-            <p>&copy; {new Date().getFullYear()} Sampark. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} ChatBoatAI. All rights reserved.</p>
             <p className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 max-w-md sm:max-w-none">
               <span className="inline-flex items-center gap-1.5">
                 <FaWhatsapp className="h-3.5 w-3.5 text-[#25D366]" /> Built on the official{" "}

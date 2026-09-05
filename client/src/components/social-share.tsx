@@ -11,7 +11,7 @@ type SocialShareProps = {
 };
 
 export function SocialShare({
-  title = "Sampark — WhatsApp Business API Platform",
+  title = "ChatBoatAI — WhatsApp Business API Platform",
   className,
 }: SocialShareProps) {
   const [location] = useLocation();

@@ -56,7 +56,7 @@ export default function TrustPage() {
         <div className="container mx-auto max-w-4xl">
           <FadeIn>
             <h2 className="text-2xl font-heading font-bold text-[#075E54] mb-4 text-center">Compliance by design</h2>
-            <p className="text-center text-[#075E54]/55 mb-10">We built Sampark for long-term senders, not shortcut tools.</p>
+            <p className="text-center text-[#075E54]/55 mb-10">We built ChatBoatAI for long-term senders, not shortcut tools.</p>
           </FadeIn>
           <div className="grid sm:grid-cols-2 gap-4">
             {compliancePoints.map((point, i) => (

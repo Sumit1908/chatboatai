@@ -34,10 +34,10 @@ export async function sendVerificationEmail(to: string, token: string, firstName
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to,
-    subject: "Verify your Sampark account",
+    subject: "Verify your ChatBoatAI account",
     html: `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2>Welcome to Sampark${firstName ? `, ${firstName}` : ""}!</h2>
+        <h2>Welcome to ChatBoatAI${firstName ? `, ${firstName}` : ""}!</h2>
         <p>Please verify your email address to activate your 7-day free trial.</p>
         <p>
           <a href="${verifyUrl}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">

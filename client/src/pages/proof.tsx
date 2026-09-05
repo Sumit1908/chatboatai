@@ -97,7 +97,7 @@ export default function ProofPage() {
         <div className="container mx-auto max-w-3xl">
           <FadeIn>
             <MarketingCta
-              title="Join teams already sending on Sampark"
+              title="Join teams already sending on ChatBoatAI"
               subtitle="Free trial on every plan. See the delivery reports for yourself before you commit."
             />
           </FadeIn>

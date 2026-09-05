@@ -345,7 +345,7 @@ export function AppSidebar({
                 </div>
               </div>
               <div className="flex flex-1 flex-col min-w-0">
-                <span className="text-sm font-semibold truncate">{activeAccount?.name || "Sampark"}</span>
+                <span className="text-sm font-semibold truncate">{activeAccount?.name || "ChatBoatAI"}</span>
                 <span className="text-xs text-muted-foreground truncate">{activeAccount?.phoneNumber || "Choose a WhatsApp number"}</span>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />

@@ -34,7 +34,7 @@ function safeCompareHex(expected: string, actual: string | undefined): boolean {
 }
 
 function razorpayPlanName(plan: BillingPlan): string {
-  return `Sampark ${plan.name} — ${plan.priceLabel}/month`;
+  return `ChatBoatAI ${plan.name} — ${plan.priceLabel}/month`;
 }
 
 /** Finds or creates the Razorpay plan for a billing tier. */

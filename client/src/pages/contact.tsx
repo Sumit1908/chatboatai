@@ -45,7 +45,7 @@ export default function Contact() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <MessageSquare className="h-5 w-5" />
               </div>
-              <span className="text-xl font-bold">Sampark</span>
+              <span className="text-xl font-bold">ChatBoatAI</span>
             </div>
           </Link>
           <Link href="/">
@@ -162,7 +162,7 @@ export default function Contact() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Sampark Pvt. Ltd.<br />
+                  ChatBoatAI Pvt. Ltd.<br />
                   412 Business Park, Tower C<br />
                   Sector 62, Noida<br />
                   Uttar Pradesh 201301, India

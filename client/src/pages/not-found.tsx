@@ -15,8 +15,8 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-[#F7FBF8] text-[#075E54] flex flex-col">
       <SeoHead
-        title="Page Not Found | Sampark"
-        description="The page you requested was not found. Return to Sampark home, features, pricing, FAQ or contact support for WhatsApp Business API help."
+        title="Page Not Found | ChatBoatAI"
+        description="The page you requested was not found. Return to ChatBoatAI home, features, pricing, FAQ or contact support for WhatsApp Business API help."
         path="/404"
         robots="noindex, follow"
         includeOrganization={false}
@@ -24,7 +24,7 @@ export default function NotFound() {
       <header className="border-b border-[#075E54]/10 bg-white/80">
         <div className="container mx-auto max-w-4xl px-4 h-14 flex items-center">
           <Link href="/" className="font-heading font-bold text-lg">
-            Sampark
+            ChatBoatAI
           </Link>
         </div>
       </header>
@@ -34,7 +34,7 @@ export default function NotFound() {
           <h1 className="font-heading text-3xl md:text-4xl font-bold">Page not found</h1>
           <p className="text-[#075E54]/65 leading-relaxed">
             The page you requested does not exist or may have moved. Use the links below to continue
-            exploring Sampark’s WhatsApp Business API platform.
+            exploring ChatBoatAI’s WhatsApp Business API platform.
           </p>
           <div className="flex flex-wrap justify-center gap-2 pt-2">
             {HELPFUL_LINKS.map(({ href, label, icon: Icon }) => (

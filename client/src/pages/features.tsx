@@ -112,7 +112,7 @@ export default function FeaturesPage() {
       <AnimatedSection variant="ticks" intensity="subtle" className="py-16 md:py-20 px-4 border-t border-[#075E54]/10">
         <div className="container mx-auto max-w-4xl">
           <FadeIn>
-            <h2 className="text-2xl font-heading font-bold text-[#075E54] mb-8 text-center">Why teams choose Sampark</h2>
+            <h2 className="text-2xl font-heading font-bold text-[#075E54] mb-8 text-center">Why teams choose ChatBoatAI</h2>
           </FadeIn>
           <div className="grid sm:grid-cols-2 gap-4 mb-10">
             {highlights.map((h, i) => (

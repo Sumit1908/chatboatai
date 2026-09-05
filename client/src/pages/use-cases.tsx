@@ -33,7 +33,7 @@ export default function UseCasesPage() {
           <PageHero
             eyebrow="Who it's for"
             title="Built for teams that sell in conversations"
-            subtitle="WhatsApp is where Indian buyers actually respond. Sampark turns those conversations into a pipeline."
+            subtitle="WhatsApp is where Indian buyers actually respond. ChatBoatAI turns those conversations into a pipeline."
           />
         </div>
       </AnimatedSection>
@@ -112,7 +112,7 @@ export default function UseCasesPage() {
               One platform, every conversation
             </h2>
             <p className="text-center text-[#075E54]/55 max-w-2xl mx-auto">
-              Whether you&apos;re a broker blasting new launches or a D2C brand recovering carts, Sampark gives you
+              Whether you&apos;re a broker blasting new launches or a D2C brand recovering carts, ChatBoatAI gives you
               broadcasts, inbox, and analytics on the official Meta API.
             </p>
           </FadeIn>
