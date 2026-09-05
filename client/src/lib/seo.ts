@@ -1,7 +1,7 @@
 import { faqs, EMAIL_INFO, EMAIL_SUPPORT, HELP_NUMBER } from "./marketing-content";
 
 /** Canonical production origin — must match the live app host. */
-export const SITE_URL = "https://sampark.tech";
+export const SITE_URL = "https://chatboatai.in";
 export const SITE_NAME = "Sampark";
 export const SITE_AUTHOR = "Sampark";
 export const SITE_PUBLISHER = "Sampark";

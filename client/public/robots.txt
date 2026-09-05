@@ -1,4 +1,4 @@
-# https://sampark.tech/robots.txt
+# https://chatboatai.in/robots.txt
 User-agent: *
 Allow: /
 Allow: /features
@@ -30,4 +30,4 @@ Disallow: /settings
 Disallow: /billing
 Disallow: /api/
 
-Sitemap: https://sampark.tech/sitemap.xml
+Sitemap: https://chatboatai.in/sitemap.xml

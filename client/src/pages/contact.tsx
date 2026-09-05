@@ -163,7 +163,7 @@ export default function Contact() {
               <CardContent>
                 <p className="text-muted-foreground">
                   Sampark Pvt. Ltd.<br />
-                  123 Business Park, Tower A<br />
+                  412 Business Park, Tower C<br />
                   Sector 62, Noida<br />
                   Uttar Pradesh 201301, India
                 </p>

@@ -23,7 +23,7 @@ export async function sendVerificationEmail(to: string, token: string, firstName
     return;
   }
 
-  const appUrl = process.env.APP_URL || "https://sampark.tech";
+  const appUrl = process.env.APP_URL || "https://chatboatai.in";
   const verifyUrl = `${appUrl}/api/verify-email?token=${token}`;
 
   const resend = getClient();
