@@ -54,7 +54,7 @@ import { deleteAllUserData } from "./userDeletion";
 import { getAdminRevenueSnapshot } from "./adminRevenue";
 import { pageViews, users } from "@shared/models/auth";
 import * as razorpayApi from "./razorpay";
-import { sendVerificationEmail } from "./email";
+import { sendVerificationEmail, sendContactInquiryEmail } from "./email";
 import crypto from "crypto";
 import multer from "multer";
 import path from "path";
@@ -1917,8 +1917,18 @@ export async function registerRoutes(
   });
 
   // ============== Campaign Metrics ==============
-  app.get("/api/campaigns/:id/metrics", async (req, res) => {
+  app.get("/api/campaigns/:id/metrics", isAuthenticated as RequestHandler, async (req: any, res) => {
     try {
+      const active = await getActiveAccount(req);
+      if (!active) return res.status(401).json({ error: "No active account" });
+      const campaign = await storage.getCampaign(req.params.id);
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+      if (campaign.accountId && campaign.accountId !== active.accountId) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+
       const metrics = await storage.getCampaignMetrics(req.params.id);
       if (!metrics) {
         // Calculate metrics from messages
@@ -4463,6 +4473,35 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch public plans:", error);
       res.status(500).json({ error: "Failed to fetch plans" });
+    }
+  });
+
+  // Public "Contact Us" form (no auth — this is the public marketing page).
+  // Delivers via the existing Resend email mechanism (see server/email.ts);
+  // does not persist inquiries anywhere, so nothing new is added to the DB.
+  const contactInquirySchema = z.object({
+    firstName: z.string().trim().min(1, "First name is required").max(100),
+    lastName: z.string().trim().min(1, "Last name is required").max(100),
+    email: z.string().trim().email("Enter a valid email").max(255),
+    phone: z.string().trim().max(30).optional(),
+    subject: z.string().trim().min(1, "Subject is required").max(200),
+    message: z.string().trim().min(1, "Message is required").max(5000),
+  });
+
+  app.post("/api/contact-inquiry", async (req, res) => {
+    try {
+      const data = contactInquirySchema.parse(req.body);
+      const result = await sendContactInquiryEmail(data);
+      if (!result.success) {
+        return res.status(503).json({ error: result.message });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Contact inquiry error:", error);
+      res.status(500).json({ error: "Failed to submit your message. Please try again." });
     }
   });
 

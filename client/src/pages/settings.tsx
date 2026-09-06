@@ -15,7 +15,6 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { ApiSettings, WhatsAppAccount } from "@shared/schema";
 
 export default function Settings() {
-  const [showToken, setShowToken] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showManualToken, setShowManualToken] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -343,130 +342,6 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      {/* API Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">API Configuration</CardTitle>
-          <CardDescription>
-            Enter your Meta WhatsApp Business API credentials
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="accessToken">Access Token</Label>
-            <div className="relative">
-              <Input
-                id="accessToken"
-                name="convora-api-access-token"
-                type={showToken ? "text" : "password"}
-                value={formData.accessToken}
-                onChange={(e) => handleInputChange("accessToken", e.target.value)}
-                placeholder="Enter your permanent access token"
-                className="pr-10 font-mono text-sm"
-                autoComplete="new-password"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                data-lpignore="true"
-                data-1p-ignore
-                data-testid="input-access-token"
-              />
-              <button
-                type="button"
-                onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label={showToken ? "Hide access token" : "Show access token"}
-              >
-                {showToken ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Generate a permanent token from Meta Business Suite
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumberId">Phone Number ID</Label>
-              <Input
-                id="phoneNumberId"
-                value={formData.phoneNumberId}
-                onChange={(e) => handleInputChange("phoneNumberId", e.target.value)}
-                placeholder="e.g., 123456789012345"
-                className="font-mono text-sm"
-                data-testid="input-phone-number-id"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="businessAccountId">Business Account ID</Label>
-              <Input
-                id="businessAccountId"
-                name="convora-api-waba-id"
-                value={formData.businessAccountId}
-                onChange={(e) => handleInputChange("businessAccountId", e.target.value)}
-                placeholder="e.g., 987654321098765"
-                className="font-mono text-sm"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                data-testid="input-business-account-id"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="webhookVerifyToken">Webhook Verify Token</Label>
-            <Input
-              id="webhookVerifyToken"
-              value={formData.webhookVerifyToken}
-              onChange={(e) => handleInputChange("webhookVerifyToken", e.target.value)}
-              placeholder="Your custom verification token"
-              className="font-mono text-sm"
-              data-testid="input-webhook-verify-token"
-            />
-            <p className="text-xs text-muted-foreground">
-              A custom string to verify webhook requests from Meta
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="apiVersion">API Version</Label>
-            <Input
-              id="apiVersion"
-              value={formData.apiVersion}
-              onChange={(e) => handleInputChange("apiVersion", e.target.value)}
-              placeholder="v18.0"
-              className="font-mono text-sm max-w-32"
-              data-testid="input-api-version"
-            />
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-end gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setFormData(settings || {})}
-            >
-              Reset
-            </Button>
-            <Button 
-              onClick={() => saveMutation.mutate(formData)}
-              disabled={saveMutation.isPending}
-              data-testid="button-save-settings"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {saveMutation.isPending ? "Saving..." : "Save Settings"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Webhook Configuration */}
       <Card>
         <CardHeader>
@@ -484,7 +359,7 @@ export default function Settings() {
                 readOnly
                 className="font-mono text-sm bg-muted"
               />
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => {
                   navigator.clipboard.writeText(`${window.location.origin}/api/webhook`);
@@ -498,6 +373,42 @@ export default function Settings() {
               Add this URL in your Meta App Dashboard under WhatsApp &gt; Configuration &gt; Webhook URL
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="webhookVerifyToken">Webhook Verify Token</Label>
+            <Input
+              id="webhookVerifyToken"
+              value={formData.webhookVerifyToken}
+              onChange={(e) => handleInputChange("webhookVerifyToken", e.target.value)}
+              placeholder="Your custom verification token"
+              className="font-mono text-sm"
+              data-testid="input-webhook-verify-token"
+            />
+            <p className="text-xs text-muted-foreground">
+              A custom string to verify webhook requests from Meta. Meta's webhook verification
+              checks the incoming request against this value.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFormData(settings || {})}
+              >
+                Reset
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => saveMutation.mutate(formData)}
+                disabled={saveMutation.isPending}
+                data-testid="button-save-settings"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saveMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -532,22 +443,26 @@ export default function Settings() {
           <Separator />
 
           <div className="space-y-4">
-            <p className="text-sm font-medium">Subscribe to Events</p>
+            <div>
+              <p className="text-sm font-medium">Subscribed Events</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Meta subscribes your app to all of these together when you click "Configure Webhooks
+                Automatically" above — they can't be enabled individually, so they're shown as status,
+                not as separate switches.
+              </p>
+            </div>
             <div className="space-y-3">
               <WebhookToggle
                 label="Message Status Updates"
-                description="Receive delivery, read, and failure notifications"
-                defaultChecked
+                description="Delivery, read, and failure notifications"
               />
               <WebhookToggle
                 label="Template Status Updates"
-                description="Receive approval, rejection, and quality changes"
-                defaultChecked
+                description="Approval, rejection, and quality changes"
               />
               <WebhookToggle
                 label="Account Updates"
-                description="Receive quality rating and limit changes"
-                defaultChecked
+                description="Quality rating and limit changes"
               />
             </div>
           </div>
@@ -562,17 +477,19 @@ export default function Settings() {
         <CardHeader>
           <CardTitle className="text-base font-semibold">Rate Limits</CardTitle>
           <CardDescription>
-            Current API rate limits and usage
+            Real limits reported by Meta for your active WhatsApp number
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Messages per second</p>
-                <p className="text-sm text-muted-foreground">Current tier limit</p>
+                <p className="font-medium">Throughput tier</p>
+                <p className="text-sm text-muted-foreground">Reported by Meta for this number</p>
               </div>
-              <Badge variant="secondary" className="font-mono">80/sec</Badge>
+              <Badge variant="secondary" className="font-mono">
+                {activeAccount?.throughputLevel || "Not available"}
+              </Badge>
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -580,7 +497,9 @@ export default function Settings() {
                 <p className="font-medium">Messages per 24 hours</p>
                 <p className="text-sm text-muted-foreground">Based on quality tier</p>
               </div>
-              <Badge variant="secondary" className="font-mono">100,000</Badge>
+              <Badge variant="secondary" className="font-mono">
+                {activeAccount?.messagingLimit ? activeAccount.messagingLimit.toLocaleString() : "Not available"}
+              </Badge>
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -588,7 +507,7 @@ export default function Settings() {
                 <p className="font-medium">Template submissions</p>
                 <p className="text-sm text-muted-foreground">Per day</p>
               </div>
-              <Badge variant="secondary" className="font-mono">100/day</Badge>
+              <Badge variant="secondary" className="font-mono">Not available</Badge>
             </div>
           </div>
         </CardContent>
@@ -960,17 +879,26 @@ function StatusIndicator({ status }: StatusIndicatorProps) {
 interface WebhookToggleProps {
   label: string;
   description: string;
-  defaultChecked?: boolean;
 }
 
-function WebhookToggle({ label, description, defaultChecked }: WebhookToggleProps) {
+// Always on and disabled rather than a live toggle: Meta subscribes to all
+// of these event types together as one unit (see subscribeAppToWaba in
+// server/whatsapp-api.ts) — there's no per-event API to wire an individual
+// switch to, so presenting this as interactive would be misleading.
+function WebhookToggle({ label, description }: WebhookToggleProps) {
   return (
     <div className="flex items-center justify-between">
       <div className="space-y-0.5">
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <Switch defaultChecked={defaultChecked} />
+      <Switch
+        checked
+        disabled
+        onCheckedChange={() => {}}
+        aria-readonly
+        title="Enabled together via Configure Webhooks Automatically"
+      />
     </div>
   );
 }

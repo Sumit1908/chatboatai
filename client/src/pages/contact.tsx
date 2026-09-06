@@ -14,6 +14,7 @@ import {
   EMAIL_BILLING,
 } from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Contact() {
   const { toast } = useToast();
@@ -21,18 +22,48 @@ export default function Contact() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
     setIsSubmitting(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Message Sent",
-      description: "Thank you for contacting us. We'll get back to you within 24 hours.",
-    });
-    
-    setIsSubmitting(false);
-    (e.target as HTMLFormElement).reset();
+
+    try {
+      const formData = new FormData(form);
+      const payload = {
+        firstName: String(formData.get("firstName") || "").trim(),
+        lastName: String(formData.get("lastName") || "").trim(),
+        email: String(formData.get("email") || "").trim(),
+        phone: String(formData.get("phone") || "").trim() || undefined,
+        subject: String(formData.get("subject") || "").trim(),
+        message: String(formData.get("message") || "").trim(),
+      };
+
+      const res = await apiRequest("POST", "/api/contact-inquiry", payload);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        toast({
+          title: "Couldn't send your message",
+          description:
+            data.error ||
+            `Please email ${EMAIL_SUPPORT} or call ${HELP_NUMBER_DISPLAY} directly.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Message Sent",
+        description: "Thank you for contacting us. We'll get back to you within 24 hours.",
+      });
+      form.reset();
+    } catch {
+      toast({
+        title: "Couldn't send your message",
+        description: `Please email ${EMAIL_SUPPORT} or call ${HELP_NUMBER_DISPLAY} directly.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -78,30 +109,31 @@ export default function Contact() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="John" required data-testid="input-first-name" />
+                      <Input id="firstName" name="firstName" placeholder="John" required data-testid="input-first-name" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Doe" required data-testid="input-last-name" />
+                      <Input id="lastName" name="lastName" placeholder="Doe" required data-testid="input-last-name" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="john@example.com" required data-testid="input-email" />
+                    <Input id="email" name="email" type="email" placeholder="john@example.com" required data-testid="input-email" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" type="tel" placeholder={HELP_NUMBER_DISPLAY} data-testid="input-phone" />
+                    <Input id="phone" name="phone" type="tel" placeholder={HELP_NUMBER_DISPLAY} data-testid="input-phone" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" placeholder="How can we help?" required data-testid="input-subject" />
+                    <Input id="subject" name="subject" placeholder="How can we help?" required data-testid="input-subject" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="message">Message</Label>
-                    <Textarea 
-                      id="message" 
-                      placeholder="Tell us more about your inquiry..." 
+                    <Textarea
+                      id="message"
+                      name="message"
+                      placeholder="Tell us more about your inquiry..."
                       className="min-h-32 resize-none"
                       required
                       data-testid="input-message"

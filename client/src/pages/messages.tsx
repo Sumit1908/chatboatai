@@ -80,9 +80,42 @@ export default function Messages() {
   };
 
   const handleExport = () => {
+    if (messages.length === 0) {
+      toast({
+        title: "Nothing to export",
+        description: "There are no messages on this page to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const header = ["Message ID", "Recipient", "Template", "Status", "Sent", "Delivered", "Read", "Error"];
+    const rows = messages.map((m) => [
+      m.whatsappMessageId || m.id,
+      m.recipientPhone,
+      getTemplateName(m.templateId),
+      m.status || "",
+      m.sentAt ? new Date(m.sentAt).toISOString() : "",
+      m.deliveredAt ? new Date(m.deliveredAt).toISOString() : "",
+      m.readAt ? new Date(m.readAt).toISOString() : "",
+      m.errorDescription || m.errorCode || "",
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((v) => escapeCsv(String(v))).join(",")).join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `messages-page-${page}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
     toast({
-      title: "Export Started",
-      description: "Your message data is being prepared for download.",
+      title: "Export complete",
+      description: `Exported ${messages.length} message(s) from this page.`,
     });
   };
 

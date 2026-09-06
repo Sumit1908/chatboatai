@@ -161,13 +161,6 @@ export default function Campaigns() {
     campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getCampaignProgress = (campaign: Campaign) => {
-    // Mock progress calculation
-    if (campaign.status === "completed") return 100;
-    if (campaign.status === "running") return Math.floor(Math.random() * 60) + 20;
-    return 0;
-  };
-
   const getRecipientCount = (campaign: Campaign) => {
     return campaign.recipients?.length || 0;
   };
@@ -344,7 +337,6 @@ export default function Campaigns() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredCampaigns.map((campaign) => {
-            const progress = getCampaignProgress(campaign);
             const recipientCount = getRecipientCount(campaign);
             const template = templates.find((t) => t.id === campaign.templateId);
             
@@ -418,38 +410,11 @@ export default function Campaigns() {
                     </p>
                   )}
 
-                  <div className="mt-4 flex items-center gap-4">
-                    {campaign.status === "running" || campaign.status === "completed" ? (
-                      <ProgressRing 
-                        progress={progress} 
-                        size={64} 
-                        strokeWidth={5}
-                        showLabel={false}
-                      />
-                    ) : (
-                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                        <Users className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Recipients</span>
-                        <span className="font-medium tabular-nums">{recipientCount.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Template</span>
-                        <span className="font-mono text-xs truncate max-w-[120px]">
-                          {template?.name || "Unknown"}
-                        </span>
-                      </div>
-                      {campaign.status === "running" && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium tabular-nums">{progress}%</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <CampaignProgress
+                    campaign={campaign}
+                    recipientCount={recipientCount}
+                    templateName={template?.name}
+                  />
 
                   <div className="mt-4 pt-4 border-t flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
@@ -526,6 +491,84 @@ export default function Campaigns() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+interface CampaignMetrics {
+  totalMessages: number;
+  sentCount: number;
+  deliveredCount: number;
+  readCount: number;
+  failedCount: number;
+}
+
+// Real send progress from GET /api/campaigns/:id/metrics (existing endpoint,
+// already used by the notification report page) — replaces the previous
+// Math.random() placeholder. Only fetched for running campaigns; draft/paused
+// show the neutral placeholder icon, completed always shows 100%.
+function CampaignProgress({
+  campaign,
+  recipientCount,
+  templateName,
+}: {
+  campaign: Campaign;
+  recipientCount: number;
+  templateName: string | undefined;
+}) {
+  const isRunning = campaign.status === "running";
+
+  const { data: metrics } = useQuery<CampaignMetrics>({
+    queryKey: ["/api/campaigns", campaign.id, "metrics"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/campaigns/${campaign.id}/metrics`);
+      return res.json();
+    },
+    enabled: isRunning,
+    refetchInterval: isRunning ? 5000 : false,
+  });
+
+  const progress =
+    campaign.status === "completed"
+      ? 100
+      : isRunning && metrics && recipientCount > 0
+        ? Math.min(100, Math.round((metrics.sentCount / recipientCount) * 100))
+        : 0;
+
+  return (
+    <div className="mt-4 flex items-center gap-4">
+      {campaign.status === "running" || campaign.status === "completed" ? (
+        <ProgressRing
+          progress={progress}
+          size={64}
+          strokeWidth={5}
+          showLabel={false}
+        />
+      ) : (
+        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+          <Users className="h-6 w-6 text-muted-foreground" />
+        </div>
+      )}
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Recipients</span>
+          <span className="font-medium tabular-nums">{recipientCount.toLocaleString()}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Template</span>
+          <span className="font-mono text-xs truncate max-w-[120px]">
+            {templateName || "Unknown"}
+          </span>
+        </div>
+        {isRunning && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-medium tabular-nums">
+              {metrics ? `${progress}%` : "…"}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
