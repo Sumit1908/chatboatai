@@ -56,6 +56,8 @@ import { pageViews, users } from "@shared/models/auth";
 import * as razorpayApi from "./razorpay";
 import { sendVerificationEmail, sendContactInquiryEmail } from "./email";
 import { verifyCsrf } from "./csrf";
+import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 import crypto from "crypto";
 import multer from "multer";
 import path from "path";
@@ -5409,6 +5411,91 @@ export async function registerRoutes(
       res.json({ available: !existingSuperAdmin });
     } catch (error) {
       res.status(500).json({ error: "Failed to check bootstrap status" });
+    }
+  });
+
+  // ============== Super Admin Recovery (emergency, key-gated) ==============
+  // For when nobody can log in as super_admin and the self-serve /bootstrap
+  // above is already permanently disabled (it only works while zero
+  // super_admins exist). Inert unless SUPER_ADMIN_RECOVERY_KEY is set in the
+  // environment - not setting it fully disables this route (404). Deliberately
+  // lives outside /api/admin/* so it isn't covered by session auth or the
+  // verifyCsrf middleware above (this caller has no session yet, that's the
+  // whole point). Never overwrites an existing account - only creates a new
+  // one. See deployment notes for the one-time usage + cleanup steps.
+  const recoveryRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many attempts. Please try again later." },
+  });
+
+  app.post("/api/system/super-admin-recovery", recoveryRateLimiter, async (req, res) => {
+    try {
+      const recoveryKey = process.env.SUPER_ADMIN_RECOVERY_KEY;
+      if (!recoveryKey) {
+        return res.status(404).json({ error: "Not found" });
+      }
+
+      const provided = req.headers["x-recovery-key"];
+      const providedBuf = Buffer.from(typeof provided === "string" ? provided : "", "utf8");
+      const expectedBuf = Buffer.from(recoveryKey, "utf8");
+      const keyMatches =
+        providedBuf.length === expectedBuf.length && crypto.timingSafeEqual(providedBuf, expectedBuf);
+      if (!keyMatches) {
+        return res.status(403).json({ error: "Invalid recovery key" });
+      }
+
+      const { email, password } = req.body || {};
+      if (!email || !password || String(password).length < 8) {
+        return res.status(400).json({ error: "Email and a password of at least 8 characters are required" });
+      }
+
+      const normalizedEmail = String(email).toLowerCase().trim();
+      const [existing] = await db.select().from(users).where(eq(users.email, normalizedEmail));
+      if (existing) {
+        return res.status(409).json({
+          error:
+            "An account with this email already exists. Choose a different email for the recovery account.",
+        });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const [user] = await db
+        .insert(users)
+        .values({
+          email: normalizedEmail,
+          passwordHash,
+          role: "super_admin",
+          subscriptionStatus: "active",
+          emailVerified: true,
+        })
+        .returning();
+
+      authStorage
+        .addAuditLogEntry({
+          actorUserId: user.id,
+          actorLabel: normalizedEmail,
+          action: "super_admin_recovery",
+          targetUserId: user.id,
+          targetLabel: normalizedEmail,
+          description: `Super admin account created via emergency recovery endpoint for ${normalizedEmail}`,
+        })
+        .catch((e) => console.error("Audit log (recovery) error:", e));
+
+      console.warn(
+        `[Recovery] Super admin created via recovery endpoint: ${normalizedEmail}. Remove SUPER_ADMIN_RECOVERY_KEY from the environment now.`
+      );
+
+      res.json({
+        success: true,
+        email: normalizedEmail,
+        message: "Super admin created. Remove SUPER_ADMIN_RECOVERY_KEY from your environment now, then log in at /login.",
+      });
+    } catch (error) {
+      console.error("Super admin recovery error:", error);
+      res.status(500).json({ error: "Failed to create super admin" });
     }
   });
 
