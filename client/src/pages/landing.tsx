@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -288,6 +289,16 @@ export default function Landing() {
   const plans = toMarketingPlanCards(plansData?.plans ?? []);
   const [showScene, setShowScene] = useState(false);
 
+  // Admin-editable via Admin -> Website Content (see admin-website-content.tsx).
+  // Falls back to the copy below whenever unset, so this page's appearance
+  // does not change until an admin actually edits it.
+  const { data: websiteSettings } = useQuery<{ heroDescription?: string | null } | null>({
+    queryKey: ["/api/website-settings"],
+  });
+  const heroDescription =
+    websiteSettings?.heroDescription?.trim() ||
+    "Broadcast campaigns, approved templates, a shared team inbox and real-time delivery analytics — everything your business needs to sell, support and follow up on WhatsApp, from one dashboard.";
+
   useEffect(() => {
     // Defer Three.js scene until the browser is idle so first paint / TTI stay fast.
     const win = window as Window & {
@@ -352,9 +363,7 @@ export default function Landing() {
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-[#075E54]/65 max-w-xl mb-10 leading-relaxed">
-                Broadcast campaigns, approved templates, a shared team inbox and real-time delivery
-                analytics — everything your business needs to sell, support and follow up on WhatsApp,
-                from one dashboard.
+                {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-10">
                 <a href={"/login"} className="w-full sm:w-auto">

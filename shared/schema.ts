@@ -526,6 +526,35 @@ export const apiSettings = pgTable("api_settings", {
 
 export type ApiSettings = typeof apiSettings.$inferSelect;
 
+// Website Content / CMS — single-row table (same pattern as apiSettings
+// above) covering both the admin "Website Content" section (hero, features,
+// FAQs, testimonials, pricing copy, contact info) and "General Settings"
+// (website name, support email/phone), rather than two overlapping tables.
+// Public pages read this via GET /api/website-settings and fall back to
+// their existing hardcoded copy whenever a field is empty/unset, so the
+// live public site does not change until an admin actually edits something.
+export const websiteSettings = pgTable("website_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  websiteName: varchar("website_name", { length: 120 }),
+  supportEmail: varchar("support_email", { length: 255 }),
+  supportPhone: varchar("support_phone", { length: 30 }),
+  heroHeading: text("hero_heading"),
+  heroDescription: text("hero_description"),
+  /** Array of { title: string; desc: string } */
+  features: jsonb("features").$type<Array<{ title: string; desc: string }>>(),
+  /** Array of { q: string; a: string } */
+  faqs: jsonb("faqs").$type<Array<{ q: string; a: string }>>(),
+  /** Array of { quote: string; name: string; role: string } */
+  testimonials: jsonb("testimonials").$type<Array<{ quote: string; name: string; role: string }>>(),
+  pricingNote: text("pricing_note"),
+  contactEmail: varchar("contact_email", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 30 }),
+  contactAddress: text("contact_address"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type WebsiteSettings = typeof websiteSettings.$inferSelect;
+
 // Active Account Mapping (persisted per user)
 export const activeAccounts = pgTable("active_accounts", {
   userId: varchar("user_id").primaryKey(),

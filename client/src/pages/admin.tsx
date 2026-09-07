@@ -47,6 +47,13 @@ import type { User } from "@shared/models/auth";
 import { AdminPlansPanel } from "@/components/admin-plans";
 import { AdminPaymentsPanel } from "@/components/admin-payments";
 import { AdminRevenuePanel } from "@/components/admin-revenue";
+import { AdminWhatsappAccountsPanel } from "@/components/admin-whatsapp-accounts";
+import { AdminMessagesPanel } from "@/components/admin-messages";
+import { AdminCampaignsPanel } from "@/components/admin-campaigns";
+import { AdminTemplatesPanel } from "@/components/admin-templates";
+import { AdminWebsiteContentPanel } from "@/components/admin-website-content";
+import { AdminSettingsPanel } from "@/components/admin-settings";
+import { AdminProfilePanel } from "@/components/admin-profile";
 import { AdminLayout, parseAdminTab, type AdminTab } from "@/components/admin-layout";
 import {
   DropdownMenu,
@@ -705,6 +712,20 @@ export default function Admin() {
         {tab === "revenue" && <AdminRevenuePanel />}
 
         {tab === "payments" && <AdminPaymentsPanel />}
+
+        {tab === "whatsapp" && <AdminWhatsappAccountsPanel />}
+
+        {tab === "campaigns" && <AdminCampaignsPanel />}
+
+        {tab === "messages" && <AdminMessagesPanel />}
+
+        {tab === "templates" && <AdminTemplatesPanel />}
+
+        {tab === "content" && <AdminWebsiteContentPanel />}
+
+        {tab === "settings" && <AdminSettingsPanel />}
+
+        {tab === "profile" && <AdminProfilePanel />}
 
         {tab === "users" && (
           <>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User } from "@shared/models/auth";
+import { clearCsrfToken } from "@/lib/queryClient";
 
 export const SESSION_SUPERSEDED_KEY = "auth:sessionSuperseded";
 
@@ -52,11 +53,13 @@ export function useAuth() {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: () => {
+      clearCsrfToken();
       queryClient.setQueryData(["/api/auth/user"], null);
       queryClient.clear();
       setLocation("/");
     },
     onError: () => {
+      clearCsrfToken();
       queryClient.setQueryData(["/api/auth/user"], null);
       queryClient.clear();
       setLocation("/");

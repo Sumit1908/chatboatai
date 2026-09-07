@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import rateLimit from "express-rate-limit";
 import type { Express, RequestHandler } from "express";
 import { db } from "@db";
 import { users } from "@shared/models/auth";
@@ -16,6 +17,20 @@ import {
 } from "./singleSession";
 import { TRIAL_DAYS } from "../trialLimits";
 import { blockExpiredTrialWrites } from "../subscriptionGate";
+import { ensureCsrfToken, verifyCsrf } from "../csrf";
+
+// 10 attempts per 15 minutes per IP — generous enough for a real user who
+// mistypes a password a few times, tight enough to slow down brute-forcing.
+// In-memory store (fine for a single Render instance today); if this app
+// ever scales to multiple instances, swap in a Redis-backed store (the
+// REDIS_URL already used for BullMQ could be reused) so limits are shared.
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many login attempts. Please try again in a few minutes." },
+});
 
 interface SessionUser {
   claims: {
@@ -123,7 +138,7 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/login", loginRateLimiter, (req, res, next) => {
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message?: string }) => {
       if (err) {
         console.error("Login error:", err);
@@ -143,6 +158,19 @@ export async function setupAuth(app: Express) {
           const userId = (user as SessionUser).claims.sub;
           await activateUserSession(userId, req.sessionID);
           const fullUser = await authStorage.getUser(userId);
+          // Only admin/super_admin logins go into the audit log - logging
+          // every regular customer login would flood it with noise the log
+          // was never meant to hold (see server/auth/storage.ts).
+          if (fullUser && (fullUser.role === "admin" || fullUser.role === "super_admin")) {
+            authStorage
+              .addAuditLogEntry({
+                actorUserId: fullUser.id,
+                actorLabel: fullUser.email || fullUser.id,
+                action: "admin_login",
+                description: `${fullUser.email || fullUser.id} logged in`,
+              })
+              .catch((e) => console.error("Audit log (login) error:", e));
+          }
           return res.json({ success: true, user: fullUser || null });
         } catch (e) {
           console.error("Login user hydrate error:", e);
@@ -152,13 +180,81 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  // Fetches (creating if needed) the CSRF token bound to the current
+  // session - see server/csrf.ts. Safe to call whether or not the caller
+  // is logged in; used by the admin panel before its first mutating request.
+  app.get("/api/csrf-token", (req, res) => {
+    res.json({ csrfToken: ensureCsrfToken(req) });
+  });
+
+  app.post("/api/auth/change-password", isAuthenticated, verifyCsrf, async (req: any, res) => {
+    try {
+      const userId = (req.user as SessionUser).claims.sub;
+      const { currentPassword, newPassword } = req.body || {};
+      if (!currentPassword || !newPassword || String(newPassword).length < 8) {
+        return res.status(400).json({
+          message: "Current password and a new password of at least 8 characters are required",
+        });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || !user.passwordHash) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!valid) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      await db
+        .update(users)
+        .set({ passwordHash: newPasswordHash, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+      if (user.role === "admin" || user.role === "super_admin") {
+        authStorage
+          .addAuditLogEntry({
+            actorUserId: user.id,
+            actorLabel: user.email || user.id,
+            action: "password_change",
+            description: `${user.email || user.id} changed their password`,
+          })
+          .catch((e) => console.error("Audit log (password change) error:", e));
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
   function destroySessionAndRespond(req: any, res: any, preferJson: boolean) {
     const userId = (req.user as SessionUser | undefined)?.claims?.sub;
     const sessionId = req.sessionID as string | undefined;
 
+    // Captured before logout tears down req.user - only used for the audit
+    // log entry below, and only for admin/super_admin accounts (see the
+    // matching note on the login handler above).
+    const loggedOutUser = userId ? authStorage.getUser(userId).catch(() => undefined) : Promise.resolve(undefined);
+
     const finishLogout = () => {
       req.logout((logoutErr: Error | null) => {
         if (logoutErr) console.error("Logout error:", logoutErr);
+        loggedOutUser.then((user) => {
+          if (user && (user.role === "admin" || user.role === "super_admin")) {
+            authStorage
+              .addAuditLogEntry({
+                actorUserId: user.id,
+                actorLabel: user.email || user.id,
+                action: "admin_logout",
+                description: `${user.email || user.id} logged out`,
+              })
+              .catch((e) => console.error("Audit log (logout) error:", e));
+          }
+        });
         // req.logout() only clears passport user — the session row in Neon must
         // be destroyed too, or the next request still pays a slow session read.
         req.session.destroy((destroyErr: Error | null) => {

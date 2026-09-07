@@ -9,6 +9,13 @@ import {
   LogOut,
   FileText,
   BarChart3,
+  Smartphone,
+  MessageSquare,
+  Megaphone,
+  FileStack,
+  Layout,
+  Settings as SettingsIcon,
+  UserCircle,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,21 +25,35 @@ export type AdminTab =
   | "dashboard"
   | "visitors"
   | "users"
+  | "whatsapp"
+  | "campaigns"
+  | "messages"
+  | "templates"
+  | "content"
   | "plans"
   | "revenue"
   | "payments"
   | "files"
-  | "audit";
+  | "audit"
+  | "settings"
+  | "profile";
 
 const ADMIN_TABS: AdminTab[] = [
   "dashboard",
   "visitors",
   "users",
+  "whatsapp",
+  "campaigns",
+  "messages",
+  "templates",
+  "content",
   "plans",
   "revenue",
   "payments",
   "files",
   "audit",
+  "settings",
+  "profile",
 ];
 
 export function parseAdminTab(value: string | null): AdminTab {
@@ -78,13 +99,20 @@ export function AdminLayout({ activeTab, onTabSelect, children }: AdminLayoutPro
 
   const navItems: NavItem[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "visitors", label: "Visitors", icon: Eye, badge: visitors?.visitors24h },
-    { id: "users", label: "User management", icon: Users, badge: pendingApproval || undefined },
-    { id: "plans", label: "Billing plans", icon: CreditCard },
-    { id: "revenue", label: "Subscriptions & Revenue", icon: BarChart3 },
+    { id: "users", label: "Users", icon: Users, badge: pendingApproval || undefined },
+    { id: "whatsapp", label: "WhatsApp Accounts", icon: Smartphone },
+    { id: "campaigns", label: "Campaigns", icon: Megaphone },
+    { id: "messages", label: "Messages", icon: MessageSquare },
+    { id: "templates", label: "Templates", icon: FileStack },
+    { id: "content", label: "Website Content", icon: Layout },
+    { id: "plans", label: "Pricing Plans", icon: CreditCard },
+    { id: "revenue", label: "Analytics", icon: BarChart3 },
     { id: "payments", label: "Payments", icon: CreditCard },
+    { id: "visitors", label: "Visitors", icon: Eye, badge: visitors?.visitors24h },
     { id: "files", label: "Uploaded files", icon: FileText },
     { id: "audit", label: "Audit log", icon: ScrollText },
+    { id: "settings", label: "Settings", icon: SettingsIcon },
+    { id: "profile", label: "Admin Profile", icon: UserCircle },
   ];
 
   return (

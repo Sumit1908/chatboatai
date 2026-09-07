@@ -55,6 +55,7 @@ import { getAdminRevenueSnapshot } from "./adminRevenue";
 import { pageViews, users } from "@shared/models/auth";
 import * as razorpayApi from "./razorpay";
 import { sendVerificationEmail, sendContactInquiryEmail } from "./email";
+import { verifyCsrf } from "./csrf";
 import crypto from "crypto";
 import multer from "multer";
 import path from "path";
@@ -3858,6 +3859,12 @@ export async function registerRoutes(
     next();
   };
 
+  // CSRF protection for every /api/admin/* mutating request (GET is exempt
+  // inside verifyCsrf itself) - see server/csrf.ts. Applied once here rather
+  // than per-route so it automatically covers every admin route below,
+  // present and future.
+  app.use("/api/admin", verifyCsrf);
+
   // Get all users (super_admin only)
   app.get("/api/admin/users", requireSuperAdmin, async (req, res) => {
     try {
@@ -4282,6 +4289,253 @@ export async function registerRoutes(
     }
   });
 
+  // ============== Admin: Cross-tenant WhatsApp Accounts ==============
+  app.get("/api/admin/whatsapp-accounts", requireSuperAdmin, async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize || "25"), 10) || 25));
+      const search = typeof req.query.search === "string" ? req.query.search : undefined;
+      const { accounts, total } = await storage.getAdminAccountsPage({ page, pageSize, search });
+      const allUsers = await authStorage.getAllUsers();
+      const userById = new Map(allUsers.map((u) => [u.id, u]));
+      const enriched = accounts.map((a) => {
+        const owner = userById.get(a.userId);
+        return {
+          id: a.id,
+          name: a.name,
+          phoneNumber: a.phoneNumber,
+          phoneNumberId: a.phoneNumberId,
+          businessAccountId: a.businessAccountId,
+          status: a.status,
+          qualityRating: a.qualityRating,
+          createdAt: a.createdAt,
+          ownerEmail: owner?.email || null,
+          ownerName: [owner?.firstName, owner?.lastName].filter(Boolean).join(" ") || null,
+        };
+      });
+      res.json({ accounts: enriched, total, page, pageSize });
+    } catch (error) {
+      console.error("Admin whatsapp-accounts list error:", error);
+      res.status(500).json({ error: "Failed to fetch WhatsApp accounts" });
+    }
+  });
+
+  // Clears the stored access token and marks the account disconnected -
+  // stops it from being usable for sending without deleting its history.
+  app.patch("/api/admin/whatsapp-accounts/:id/disconnect", requireSuperAdmin, async (req: any, res) => {
+    try {
+      const account = await storage.getAccount(req.params.id);
+      if (!account) return res.status(404).json({ error: "Account not found" });
+      const updated = await storage.updateAccount(req.params.id, { status: "disconnected", accessToken: "" });
+      const actor = await authStorage.getUser(req.user.claims.sub);
+      if (actor) {
+        authStorage
+          .addAuditLogEntry({
+            actorUserId: actor.id,
+            actorLabel: actor.email || actor.id,
+            action: "whatsapp_account_disconnect",
+            targetUserId: account.userId,
+            targetLabel: account.name || account.phoneNumber,
+            description: `Disconnected WhatsApp account ${account.name || account.phoneNumber}`,
+          })
+          .catch((e) => console.error("Audit log error:", e));
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to disconnect account" });
+    }
+  });
+
+  app.delete("/api/admin/whatsapp-accounts/:id", requireSuperAdmin, async (req: any, res) => {
+    try {
+      const account = await storage.getAccount(req.params.id);
+      if (!account) return res.status(404).json({ error: "Account not found" });
+      await storage.deleteAccount(req.params.id);
+      const actor = await authStorage.getUser(req.user.claims.sub);
+      if (actor) {
+        authStorage
+          .addAuditLogEntry({
+            actorUserId: actor.id,
+            actorLabel: actor.email || actor.id,
+            action: "whatsapp_account_delete",
+            targetUserId: account.userId,
+            targetLabel: account.name || account.phoneNumber,
+            description: `Deleted WhatsApp account ${account.name || account.phoneNumber}`,
+          })
+          .catch((e) => console.error("Audit log error:", e));
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete account" });
+    }
+  });
+
+  // ============== Admin: Cross-tenant Messages ==============
+  app.get("/api/admin/messages", requireSuperAdmin, async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize || "25"), 10) || 25));
+      const status = typeof req.query.status === "string" ? req.query.status : undefined;
+      const search = typeof req.query.search === "string" ? req.query.search : undefined;
+      const { messages: rows, total } = await storage.getAdminMessagesPage({ page, pageSize, status, search });
+      const accounts = await storage.getAccounts();
+      const accountById = new Map(accounts.map((a) => [a.id, a]));
+      const enriched = rows.map((m) => ({
+        ...m,
+        accountName: accountById.get(m.accountId || "")?.name || null,
+      }));
+      res.json({ messages: enriched, total, page, pageSize });
+    } catch (error) {
+      console.error("Admin messages list error:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // ============== Admin: Cross-tenant Campaigns ==============
+  app.get("/api/admin/campaigns", requireSuperAdmin, async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize || "25"), 10) || 25));
+      const status = typeof req.query.status === "string" ? req.query.status : undefined;
+      const search = typeof req.query.search === "string" ? req.query.search : undefined;
+      const { campaigns: rows, total } = await storage.getAdminCampaignsPage({ page, pageSize, status, search });
+      const accounts = await storage.getAccounts();
+      const accountById = new Map(accounts.map((a) => [a.id, a]));
+      const enriched = rows.map((c) => ({
+        ...c,
+        accountName: accountById.get(c.accountId || "")?.name || null,
+        recipientCount: c.recipientCount ?? (c.recipients?.length || 0),
+      }));
+      res.json({ campaigns: enriched, total, page, pageSize });
+    } catch (error) {
+      console.error("Admin campaigns list error:", error);
+      res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  // ============== Admin: Cross-tenant Templates ==============
+  app.get("/api/admin/templates", requireSuperAdmin, async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize || "25"), 10) || 25));
+      const status = typeof req.query.status === "string" ? req.query.status : undefined;
+      const search = typeof req.query.search === "string" ? req.query.search : undefined;
+      const { templates: rows, total } = await storage.getAdminTemplatesPage({ page, pageSize, status, search });
+      const accounts = await storage.getAccounts();
+      const accountById = new Map(accounts.map((a) => [a.id, a]));
+      const enriched = rows.map((t) => ({
+        ...t,
+        accountName: accountById.get(t.accountId || "")?.name || null,
+      }));
+      res.json({ templates: enriched, total, page, pageSize });
+    } catch (error) {
+      console.error("Admin templates list error:", error);
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  // Local status override only (e.g. pausing a template without waiting on
+  // Meta) - matches the field the tenant-facing template editor already uses.
+  app.patch("/api/admin/templates/:id/status", requireSuperAdmin, async (req: any, res) => {
+    try {
+      const { status } = req.body || {};
+      if (!["APPROVED", "PAUSED", "DISABLED"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      const template = await storage.getTemplate(req.params.id);
+      if (!template) return res.status(404).json({ error: "Template not found" });
+      const updated = await storage.updateTemplate(req.params.id, { status });
+      const actor = await authStorage.getUser(req.user.claims.sub);
+      if (actor) {
+        authStorage
+          .addAuditLogEntry({
+            actorUserId: actor.id,
+            actorLabel: actor.email || actor.id,
+            action: "template_status_change",
+            targetLabel: template.name,
+            description: `Set template "${template.name}" to ${status}`,
+          })
+          .catch((e) => console.error("Audit log error:", e));
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update template status" });
+    }
+  });
+
+  app.delete("/api/admin/templates/:id", requireSuperAdmin, async (req: any, res) => {
+    try {
+      const template = await storage.getTemplate(req.params.id);
+      if (!template) return res.status(404).json({ error: "Template not found" });
+      await storage.deleteTemplate(req.params.id);
+      const actor = await authStorage.getUser(req.user.claims.sub);
+      if (actor) {
+        authStorage
+          .addAuditLogEntry({
+            actorUserId: actor.id,
+            actorLabel: actor.email || actor.id,
+            action: "template_delete",
+            targetLabel: template.name,
+            description: `Deleted template "${template.name}"`,
+          })
+          .catch((e) => console.error("Audit log error:", e));
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete template" });
+    }
+  });
+
+  // ============== Admin: Website Content / Settings CMS ==============
+  const websiteSettingsSchema = z.object({
+    websiteName: z.string().max(120).optional(),
+    supportEmail: z.string().email().max(255).optional().or(z.literal("")),
+    supportPhone: z.string().max(30).optional(),
+    heroHeading: z.string().max(500).optional(),
+    heroDescription: z.string().max(1000).optional(),
+    features: z.array(z.object({ title: z.string().max(200), desc: z.string().max(500) })).max(50).optional(),
+    faqs: z.array(z.object({ q: z.string().max(300), a: z.string().max(2000) })).max(100).optional(),
+    testimonials: z.array(z.object({ quote: z.string().max(1000), name: z.string().max(120), role: z.string().max(120) })).max(50).optional(),
+    pricingNote: z.string().max(1000).optional(),
+    contactEmail: z.string().email().max(255).optional().or(z.literal("")),
+    contactPhone: z.string().max(30).optional(),
+    contactAddress: z.string().max(1000).optional(),
+  });
+
+  app.get("/api/admin/website-settings", requireSuperAdmin, async (_req, res) => {
+    try {
+      const settings = await storage.getWebsiteSettings();
+      res.json(settings || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch website settings" });
+    }
+  });
+
+  app.put("/api/admin/website-settings", requireSuperAdmin, async (req: any, res) => {
+    try {
+      const data = websiteSettingsSchema.parse(req.body);
+      const saved = await storage.saveWebsiteSettings(data);
+      const actor = await authStorage.getUser(req.user.claims.sub);
+      if (actor) {
+        authStorage
+          .addAuditLogEntry({
+            actorUserId: actor.id,
+            actorLabel: actor.email || actor.id,
+            action: "website_settings_change",
+            description: `${actor.email || actor.id} updated website content/settings`,
+          })
+          .catch((e) => console.error("Audit log error:", e));
+      }
+      res.json(saved);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Save website settings error:", error);
+      res.status(500).json({ error: "Failed to save website settings" });
+    }
+  });
+
   // Uploaded files management (super_admin only) - every uploaded template/
   // campaign media file across all tenants, with the ability to delete any
   // of them. Deletes go through deleteUploadedMedia (uploadStorage.ts) so
@@ -4462,6 +4716,22 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to delete plan:", error);
       res.status(500).json({ error: "Failed to delete plan" });
+    }
+  });
+
+  // Public website content/settings (no auth) - the CMS content an admin can
+  // edit under Admin -> Website Content / Settings. Returns whatever is
+  // saved, which may be partially or entirely empty; callers on the public
+  // site are expected to fall back to their existing hardcoded copy for any
+  // field that comes back null, so this endpoint existing changes nothing
+  // visually until an admin actually edits something.
+  app.get("/api/website-settings", async (_req, res) => {
+    try {
+      const settings = await storage.getWebsiteSettings();
+      res.json(settings || null);
+    } catch (error) {
+      console.error("Failed to fetch website settings:", error);
+      res.status(500).json({ error: "Failed to fetch website settings" });
     }
   });
 

@@ -6,6 +6,7 @@ import {
   type DashboardMetrics,
   type ActivityItem, activities,
   type ApiSettings, apiSettings,
+  type WebsiteSettings, websiteSettings,
   type WhatsAppAccount, type InsertWhatsAppAccount, whatsappAccounts,
   type Contact, type InsertContact, contacts,
   type ContactList, type InsertContactList, contactLists,
@@ -83,6 +84,8 @@ export interface IStorage {
 
   getSettings(): Promise<ApiSettings | undefined>;
   saveSettings(settings: Omit<ApiSettings, "id">): Promise<ApiSettings>;
+  getWebsiteSettings(): Promise<WebsiteSettings | undefined>;
+  saveWebsiteSettings(settings: Partial<Omit<WebsiteSettings, "id">>): Promise<WebsiteSettings>;
   backfillMessageCampaignIds(): Promise<void>;
 
   getAnalyticsData(timeRange: string, accountId?: string): Promise<AnalyticsData>;
@@ -91,6 +94,10 @@ export interface IStorage {
   getAccounts(): Promise<WhatsAppAccount[]>;
   getAccount(id: string): Promise<WhatsAppAccount | undefined>;
   createAccount(account: InsertWhatsAppAccount): Promise<WhatsAppAccount>;
+  getAdminAccountsPage(params: { page: number; pageSize: number; search?: string }): Promise<{ accounts: WhatsAppAccount[]; total: number }>;
+  getAdminMessagesPage(params: { page: number; pageSize: number; status?: string; search?: string }): Promise<{ messages: Message[]; total: number }>;
+  getAdminCampaignsPage(params: { page: number; pageSize: number; status?: string; search?: string }): Promise<{ campaigns: Campaign[]; total: number }>;
+  getAdminTemplatesPage(params: { page: number; pageSize: number; status?: string; search?: string }): Promise<{ templates: Template[]; total: number }>;
   updateAccount(id: string, updates: Partial<WhatsAppAccount>): Promise<WhatsAppAccount | undefined>;
   deleteAccount(id: string): Promise<boolean>;
   setActiveAccount(userId: string, accountId: string): Promise<void>;
@@ -782,6 +789,22 @@ export class DatabaseStorage implements IStorage {
     return this.getSettings();
   }
 
+  async getWebsiteSettings(): Promise<WebsiteSettings | undefined> {
+    const rows = await db.select().from(websiteSettings).limit(1);
+    return rows[0];
+  }
+
+  async saveWebsiteSettings(settings: Partial<Omit<WebsiteSettings, "id">>): Promise<WebsiteSettings> {
+    const existing = await this.getWebsiteSettings();
+    const withTimestamp = { ...settings, updatedAt: new Date() };
+    if (existing) {
+      const rows = await db.update(websiteSettings).set(withTimestamp).where(eq(websiteSettings.id, existing.id)).returning();
+      return rows[0];
+    }
+    const rows = await db.insert(websiteSettings).values(withTimestamp).returning();
+    return rows[0];
+  }
+
   async deleteApiSettings(): Promise<boolean> {
     const existing = await this.getSettings();
     if (!existing) return false;
@@ -1032,6 +1055,106 @@ export class DatabaseStorage implements IStorage {
 
   async getAccounts(): Promise<WhatsAppAccount[]> {
     return db.select().from(whatsappAccounts);
+  }
+
+  // ============== Admin cross-tenant queries ==============
+  // Unlike every other query in this class, these deliberately do NOT filter
+  // by accountId/userId - they back the super-admin panel's cross-tenant
+  // views (Phase 2 admin panel). Always requireSuperAdmin-gated at the route
+  // level; never exposed to regular tenant-facing routes.
+
+  async getAdminAccountsPage(params: {
+    page: number;
+    pageSize: number;
+    search?: string;
+  }): Promise<{ accounts: WhatsAppAccount[]; total: number }> {
+    const page = Math.max(1, params.page || 1);
+    const pageSize = Math.min(100, Math.max(1, params.pageSize || 25));
+    const conditions = [dsql`true`];
+    if (params.search?.trim()) {
+      const term = `%${params.search.trim()}%`;
+      conditions.push(or(ilike(whatsappAccounts.name, term), ilike(whatsappAccounts.phoneNumber, term))!);
+    }
+    const where = and(...conditions);
+
+    const [rows, countRow] = await Promise.all([
+      db.select().from(whatsappAccounts).where(where).orderBy(desc(whatsappAccounts.createdAt)).limit(pageSize).offset((page - 1) * pageSize),
+      db.select({ count: dsql<number>`count(*)::int` }).from(whatsappAccounts).where(where),
+    ]);
+    return { accounts: rows, total: Number(countRow[0]?.count) || 0 };
+  }
+
+  async getAdminMessagesPage(params: {
+    page: number;
+    pageSize: number;
+    status?: string;
+    search?: string;
+  }): Promise<{ messages: Message[]; total: number }> {
+    const page = Math.max(1, params.page || 1);
+    const pageSize = Math.min(100, Math.max(1, params.pageSize || 25));
+    const conditions = [dsql`true`];
+    if (params.status && params.status !== "all") {
+      conditions.push(eq(messages.status, params.status));
+    }
+    if (params.search?.trim()) {
+      const term = `%${params.search.trim()}%`;
+      conditions.push(or(ilike(messages.recipientPhone, term), ilike(messages.whatsappMessageId, term))!);
+    }
+    const where = and(...conditions);
+
+    const [rows, countRow] = await Promise.all([
+      db.select().from(messages).where(where).orderBy(desc(messages.queuedAt)).limit(pageSize).offset((page - 1) * pageSize),
+      db.select({ count: dsql<number>`count(*)::int` }).from(messages).where(where),
+    ]);
+    return { messages: rows, total: Number(countRow[0]?.count) || 0 };
+  }
+
+  async getAdminCampaignsPage(params: {
+    page: number;
+    pageSize: number;
+    status?: string;
+    search?: string;
+  }): Promise<{ campaigns: Campaign[]; total: number }> {
+    const page = Math.max(1, params.page || 1);
+    const pageSize = Math.min(100, Math.max(1, params.pageSize || 25));
+    const conditions = [dsql`true`];
+    if (params.status && params.status !== "all") {
+      conditions.push(eq(campaigns.status, params.status));
+    }
+    if (params.search?.trim()) {
+      conditions.push(ilike(campaigns.name, `%${params.search.trim()}%`));
+    }
+    const where = and(...conditions);
+
+    const [rows, countRow] = await Promise.all([
+      db.select().from(campaigns).where(where).orderBy(desc(campaigns.createdAt)).limit(pageSize).offset((page - 1) * pageSize),
+      db.select({ count: dsql<number>`count(*)::int` }).from(campaigns).where(where),
+    ]);
+    return { campaigns: rows, total: Number(countRow[0]?.count) || 0 };
+  }
+
+  async getAdminTemplatesPage(params: {
+    page: number;
+    pageSize: number;
+    status?: string;
+    search?: string;
+  }): Promise<{ templates: Template[]; total: number }> {
+    const page = Math.max(1, params.page || 1);
+    const pageSize = Math.min(100, Math.max(1, params.pageSize || 25));
+    const conditions = [dsql`true`];
+    if (params.status && params.status !== "all") {
+      conditions.push(eq(templates.status, params.status));
+    }
+    if (params.search?.trim()) {
+      conditions.push(ilike(templates.name, `%${params.search.trim()}%`));
+    }
+    const where = and(...conditions);
+
+    const [rows, countRow] = await Promise.all([
+      db.select().from(templates).where(where).orderBy(desc(templates.createdAt)).limit(pageSize).offset((page - 1) * pageSize),
+      db.select({ count: dsql<number>`count(*)::int` }).from(templates).where(where),
+    ]);
+    return { templates: rows, total: Number(countRow[0]?.count) || 0 };
   }
 
   async getAccount(id: string): Promise<WhatsAppAccount | undefined> {
