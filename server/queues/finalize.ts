@@ -2,7 +2,6 @@ import { getRedisConnection } from "./connection";
 import { remainingKey } from "./constants";
 import type { SendBatchJobData } from "./types";
 import { storage } from "../storage";
-import { broadcast } from "../realtime";
 
 /**
  * When a job exhausts retries, still decrement the remaining counter so the
@@ -41,21 +40,10 @@ export async function maybeFinalizeOnTerminalFailure(data: SendBatchJobData): Pr
       failedCount: counts.failed,
       deliveredCount: counts.sent,
     });
-    broadcast("notification-updated", {
-      notification: {
-        id: data.campaignId,
-        status: finalStatus,
-        sentCount: counts.sent,
-        failedCount: counts.failed,
-      },
-    });
   } else {
     await storage.updateCampaign(data.campaignId, {
       status: "completed",
       completedAt: new Date(),
-    });
-    broadcast("campaign-updated", {
-      campaign: { id: data.campaignId, status: "completed", sentCount: counts.sent, failedCount: counts.failed },
     });
   }
 }

@@ -1,7 +1,6 @@
 import type { Job } from "bullmq";
 import { storage } from "../storage";
 import * as whatsappApi from "../whatsapp-api";
-import { broadcast } from "../realtime";
 import { getRedisConnection } from "./connection";
 import { messagesPerSecondForAccount } from "./rate-limit";
 import {
@@ -147,9 +146,8 @@ async function sendOne(
           templateName: data.templateName,
           status: "sent",
         });
-        broadcast("conversation-updated", { conversationId: conv.id });
       } catch (convErr: any) {
-        console.error(`[broadcast] conversation update failed for ${phone}:`, convErr.message);
+        console.error(`[conversation] update failed for ${phone}:`, convErr.message);
       }
 
       await recordEngagementOutcome(data.accountId, false);
@@ -247,7 +245,7 @@ async function maybeFinalizeCampaign(data: SendBatchJobData): Promise<void> {
       deliveredCount: counts.sent,
     });
 
-    const activity = await storage.addActivity({
+    await storage.addActivity({
       accountId: data.accountId,
       type: "notification_completed",
       title: finalStatus === "failed" ? "Notification Failed" : "Notification Completed",
@@ -255,21 +253,12 @@ async function maybeFinalizeCampaign(data: SendBatchJobData): Promise<void> {
       timestamp: new Date(),
       metadata: null,
     });
-    broadcast("notification-updated", {
-      notification: {
-        id: data.campaignId,
-        status: finalStatus,
-        sentCount: counts.sent,
-        failedCount: counts.failed,
-      },
-    });
-    broadcast("activity-added", { activity });
   } else {
     await storage.updateCampaign(data.campaignId, {
       status: "completed",
       completedAt: new Date(),
     });
-    const activity = await storage.addActivity({
+    await storage.addActivity({
       accountId: data.accountId,
       type: "campaign_completed",
       title: "Campaign Completed",
@@ -277,10 +266,6 @@ async function maybeFinalizeCampaign(data: SendBatchJobData): Promise<void> {
       timestamp: new Date(),
       metadata: null,
     });
-    broadcast("campaign-updated", {
-      campaign: { id: data.campaignId, status: "completed", sentCount: counts.sent, failedCount: counts.failed },
-    });
-    broadcast("activity-added", { activity });
   }
 
 }
@@ -381,18 +366,6 @@ export async function processSendBatchJob(job: Job<SendBatchJobData>): Promise<{
     await storage.updateNotification(data.campaignId, {
       sentCount: counts.sent,
       failedCount: counts.failed,
-    });
-    broadcast("notification-updated", {
-      notification: {
-        id: data.campaignId,
-        sentCount: counts.sent,
-        failedCount: counts.failed,
-        totalRecipients: data.totalRecipients,
-      },
-    });
-  } else {
-    broadcast("campaign-updated", {
-      campaign: { id: data.campaignId, sentCount: counts.sent, failedCount: counts.failed },
     });
   }
 

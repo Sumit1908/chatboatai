@@ -145,7 +145,14 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Full error (message, stack, DB/SQL details, file paths, etc.) is
+    // always logged server-side below. In production the client only ever
+    // gets a generic message - the previous behavior of echoing err.message
+    // back could leak internal implementation details for any error that
+    // reaches this last-resort handler. Development keeps the real message
+    // to make local debugging useful.
+    const message =
+      process.env.NODE_ENV === "production" ? "Internal Server Error" : err.message || "Internal Server Error";
 
     console.error("Internal Server Error:", err);
 

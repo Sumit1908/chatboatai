@@ -1,6 +1,5 @@
 import type { Express, RequestHandler } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer } from "ws";
 import { storage } from "./storage";
 import { normalizePhone } from "./phone";
 import { insertTemplateSchema, insertCampaignSchema, insertMessageSchema, type WhatsAppAccount, type Template, type Notification as NotificationRecord, teamMembers } from "@shared/schema";
@@ -63,9 +62,9 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import * as whatsappApi from "./whatsapp-api";
+import { verifyMetaWebhookSignature } from "./metaWebhookSignature";
 import { saveUploadedMedia, getUploadedMediaBuffer, deleteUploadedMedia, getUploadedMediaOwner, dbUploadUrl } from "./uploadStorage";
 import * as objectStorage from "./objectStorage";
-import { addWsClient, removeWsClient, broadcast } from "./realtime";
 import {
   isQueueEnabled,
   enqueueBroadcast,
@@ -327,24 +326,6 @@ export async function registerRoutes(
   });
   await ensureSubscriptionEndsAtColumn().catch((err) => {
     console.error("[Subscription] Column ensure failed:", err);
-  });
-
-  // ============== WebSocket Setup ==============
-  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
-  
-  wss.on("connection", (ws) => {
-    addWsClient(ws);
-    
-    // Send initial connection confirmation
-    ws.send(JSON.stringify({ event: "connected", data: { message: "Connected to real-time updates" } }));
-    
-    ws.on("close", () => {
-      removeWsClient(ws);
-    });
-    
-    ws.on("error", (error) => {
-      removeWsClient(ws);
-    });
   });
 
   // ============== Queue monitoring ==============
@@ -1008,9 +989,6 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Template not found" });
       }
 
-      // Broadcast real-time update
-      broadcast("template-updated", { template });
-
       res.json(template);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1113,7 +1091,6 @@ export async function registerRoutes(
           status: metaResult.data?.status || "PENDING",
           lastSyncedAt: new Date(),
         });
-        broadcast("template-updated", { template: updated });
         res.json(updated);
       } else {
         res.status(400).json({
@@ -1271,12 +1248,9 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Campaign not found" });
       }
       
-      // Broadcast real-time update
-      broadcast("campaign-updated", { campaign });
-      
       // Add activity for status changes
       if (updates.status === "running") {
-        const activity = await storage.addActivity({
+        await storage.addActivity({
           accountId: campaign.accountId || null,
           type: "campaign_started",
           title: "Campaign Started",
@@ -1284,9 +1258,8 @@ export async function registerRoutes(
           timestamp: new Date(),
           metadata: null,
         });
-        broadcast("activity-added", { activity });
       } else if (updates.status === "completed") {
-        const activity = await storage.addActivity({
+        await storage.addActivity({
           accountId: campaign.accountId || null,
           type: "campaign_completed",
           title: "Campaign Completed",
@@ -1294,9 +1267,8 @@ export async function registerRoutes(
           timestamp: new Date(),
           metadata: null,
         });
-        broadcast("activity-added", { activity });
       }
-      
+
       res.json(campaign);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1353,7 +1325,6 @@ export async function registerRoutes(
         status: "running",
         startedAt: new Date(),
       });
-      broadcast("campaign-updated", { campaign: { ...campaign, status: "running" } });
 
       if (isQueueEnabled()) {
         const bodyPreview = renderTemplatePreview(template);
@@ -1440,7 +1411,6 @@ export async function registerRoutes(
                 type: "template",
                 status: "sent",
               });
-              broadcast("conversation-updated", { conversationId: conv.id });
             } catch (convErr: any) {
               console.error(`Failed to create conversation for ${recipientPhone}:`, convErr.message);
             }
@@ -1456,10 +1426,6 @@ export async function registerRoutes(
             });
             failedCount++;
           }
-
-          broadcast("campaign-updated", {
-            campaign: { id: campaign.id, sentCount, failedCount },
-          });
 
           await new Promise(resolve => setTimeout(resolve, 100));
         } catch (err: any) {
@@ -1486,7 +1452,7 @@ export async function registerRoutes(
         completedAt: new Date(),
       });
 
-      const activity = await storage.addActivity({
+      await storage.addActivity({
         accountId: activeAccount.id,
         type: "campaign_completed",
         title: "Campaign Completed",
@@ -1494,8 +1460,6 @@ export async function registerRoutes(
         timestamp: new Date(),
         metadata: null,
       });
-      broadcast("campaign-updated", { campaign: { ...campaign, status: "completed" } });
-      broadcast("activity-added", { activity });
     } catch (error) {
       console.error("Campaign execution error:", error);
     }
@@ -1642,9 +1606,7 @@ export async function registerRoutes(
       if (!message) {
         return res.status(404).json({ error: "Message not found" });
       }
-      
-      broadcast("message-status-update", { message });
-      
+
       res.json(message);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1668,9 +1630,6 @@ export async function registerRoutes(
     try {
       const validatedSettings = apiSettingsSchema.parse(req.body);
       const settings = await storage.saveSettings(validatedSettings);
-
-      // Broadcast settings update
-      broadcast("settings-updated", { connected: true });
 
       res.json(settings);
     } catch (error) {
@@ -1726,8 +1685,18 @@ export async function registerRoutes(
   // Meta webhook for receiving status updates
   app.post("/api/webhook", async (req, res) => {
     try {
+      // Reject anything that isn't genuinely from Meta before touching the
+      // payload - without this, anyone who finds this URL could forge
+      // incoming messages or delivery/read status updates. See
+      // server/metaWebhookSignature.ts for the HMAC-SHA256 check itself.
+      const signatureHeader = req.headers["x-hub-signature-256"] as string | undefined;
+      if (!verifyMetaWebhookSignature(req.rawBody as Buffer | undefined, signatureHeader, process.env.FACEBOOK_APP_SECRET)) {
+        console.error("[Webhook] Rejected POST /api/webhook: missing or invalid X-Hub-Signature-256");
+        return res.sendStatus(403);
+      }
+
       const body = req.body;
-      
+
       if (body.object === "whatsapp_business_account") {
         for (const entry of body.entry || []) {
           for (const change of entry.changes || []) {
@@ -1816,8 +1785,6 @@ export async function registerRoutes(
                   status: "received",
                 });
 
-                broadcast("conversation-message", { conversationId: conversation.id });
-                broadcast("conversation-updated", { conversationId: conversation.id });
               }
 
               const statuses = change.value?.statuses || [];
@@ -2016,7 +1983,6 @@ export async function registerRoutes(
         }
       }
       const account = await storage.createAccount({ ...req.body, userId });
-      broadcast("account-added", { account });
       res.status(201).json(account);
     } catch (error) {
       res.status(500).json({ error: "Failed to create account" });
@@ -2034,7 +2000,6 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Account not found or does not belong to you" });
       }
       await storage.setActiveAccount(userId, req.params.id);
-      broadcast("account-switched", { account });
       res.json({ success: true, account });
     } catch (error) {
       res.status(500).json({ error: "Failed to switch account" });
@@ -2217,7 +2182,6 @@ export async function registerRoutes(
       }
 
       if (accountsCreated > 0) {
-        broadcast("accounts-updated", { count: accountsCreated });
         res.json({ success: true, message: `Connected ${accountsCreated} WhatsApp account(s)` });
       } else {
         res.json({ success: true, message: "No new WhatsApp Business numbers found. You may have already connected this account." });
@@ -2331,9 +2295,8 @@ export async function registerRoutes(
         // Update status to connected since we verified successfully
         await storage.updateAccount(account.id, { status: "connected" });
 
-        broadcast("accounts-updated", { count: 1 });
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           message: "WhatsApp account connected successfully!",
           account: {
             id: account.id,
@@ -2491,7 +2454,6 @@ export async function registerRoutes(
       }
 
       if (accountsCreated > 0) {
-        broadcast("accounts-updated", { count: accountsCreated });
         res.redirect('/?success=WhatsApp account connected successfully');
       } else {
         res.redirect('/?error=No new WhatsApp Business numbers found');
@@ -2876,7 +2838,6 @@ export async function registerRoutes(
         ...req.body,
         conversationId: req.params.id,
       });
-      broadcast("conversation-message", { message });
       res.status(201).json(message);
     } catch (error) {
       console.error("Send message error:", error);
@@ -3021,7 +2982,6 @@ export async function registerRoutes(
         });
       }
       const notification = await storage.createNotification({ ...req.body, accountId: active.accountId });
-      broadcast("notification-created", { notification });
       res.status(201).json(notification);
     } catch (error) {
       res.status(500).json({ error: "Failed to create notification" });
@@ -3040,7 +3000,6 @@ export async function registerRoutes(
       if (!notification) {
         return res.status(404).json({ error: "Notification not found" });
       }
-      broadcast("notification-updated", { notification });
       res.json(notification);
     } catch (error) {
       res.status(500).json({ error: "Failed to update notification" });
@@ -3139,7 +3098,6 @@ export async function registerRoutes(
               templateName: template.name,
               status: "sent",
             });
-            broadcast("conversation-updated", { conversationId: conv.id });
           } catch (convErr: any) {
             console.error(`Failed to create conversation for ${recipientPhone}:`, convErr.message);
           }
@@ -3157,9 +3115,6 @@ export async function registerRoutes(
           failedCount++;
         }
 
-        broadcast("notification-updated", {
-          notification: { id: notification.id, sentCount, failedCount, totalRecipients: phoneArray.length },
-        });
 
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (err: any) {
@@ -3198,7 +3153,7 @@ export async function registerRoutes(
       deliveredCount: totalSent,
     });
 
-    const activity = await storage.addActivity({
+    await storage.addActivity({
       accountId: activeAccount.id,
       type: "notification_completed",
       title: finalStatus === "failed" ? "Notification Failed" : "Notification Completed",
@@ -3206,8 +3161,6 @@ export async function registerRoutes(
       timestamp: new Date(),
       metadata: null,
     });
-    broadcast("notification-updated", { notification: { ...notification, status: finalStatus, sentCount: totalSent, failedCount: totalFailed } });
-    broadcast("activity-added", { activity });
   }
 
   app.post("/api/notifications/:id/send", isAuthenticated as RequestHandler, requireVerifiedEmail, requireActiveSubscription, async (req: any, res) => {
@@ -3315,7 +3268,6 @@ export async function registerRoutes(
           sentAt: new Date(),
           totalRecipients,
         });
-        broadcast("notification-updated", { notification: { ...notification, status: "sending", totalRecipients } });
 
         const result = await enqueueBroadcast({
           kind: "notification",
@@ -3377,8 +3329,6 @@ export async function registerRoutes(
         sentAt: new Date(),
         totalRecipients: recipientPhones.length,
       });
-      broadcast("notification-updated", { notification: { ...notification, status: "sending" } });
-
       res.json({ message: `Notification sending started. Sending to ${recipientPhones.length} recipients.` });
 
       await runNotificationSend(notification, template, activeAccount, recipientPhones, headerParams, bodyParams);
@@ -3491,7 +3441,6 @@ export async function registerRoutes(
       const bodyPreview = renderTemplatePreview(template, bodyParams);
 
       await storage.updateNotification(notification.id, { status: "sending" });
-      broadcast("notification-updated", { notification: { ...notification, status: "sending" } });
 
       if (isQueueEnabled()) {
         const result = await enqueueBroadcast({
