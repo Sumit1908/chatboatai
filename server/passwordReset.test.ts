@@ -4,10 +4,14 @@ import {
   generateResetToken,
   hashResetToken,
   isResetTokenExpired,
+  isWithinResetRequestCooldown,
+  shouldAuditPasswordReset,
   validateNewPassword,
   requestPasswordReset,
   confirmPasswordReset,
   FORGOT_PASSWORD_RESPONSE_MESSAGE,
+  PASSWORD_RESET_REQUEST_COOLDOWN_MS,
+  PASSWORD_RESET_TOKEN_TTL_MS,
   type PasswordResetStore,
   type PasswordResetUserRecord,
 } from "./passwordReset";
@@ -114,6 +118,51 @@ describe("isResetTokenExpired", () => {
   });
 });
 
+describe("isWithinResetRequestCooldown", () => {
+  const issuedAt = new Date("2026-01-01T00:00:00.000Z");
+  const expiresAt = new Date(issuedAt.getTime() + PASSWORD_RESET_TOKEN_TTL_MS);
+
+  it("is within cooldown immediately after a token is issued", () => {
+    expect(isWithinResetRequestCooldown(expiresAt, issuedAt)).toBe(true);
+  });
+
+  it("is still within cooldown just before the cooldown window elapses", () => {
+    const justBefore = new Date(issuedAt.getTime() + PASSWORD_RESET_REQUEST_COOLDOWN_MS - 1);
+    expect(isWithinResetRequestCooldown(expiresAt, justBefore)).toBe(true);
+  });
+
+  it("is no longer within cooldown once the cooldown window has elapsed, even though the token itself is still valid", () => {
+    const justAfter = new Date(issuedAt.getTime() + PASSWORD_RESET_REQUEST_COOLDOWN_MS);
+    expect(isWithinResetRequestCooldown(expiresAt, justAfter)).toBe(false);
+    // The token is still unexpired at this point — cooldown and expiry are
+    // independent checks.
+    expect(isResetTokenExpired(expiresAt, justAfter)).toBe(false);
+  });
+
+  it("is not within cooldown when there is no token on record (null/undefined expiresAt)", () => {
+    expect(isWithinResetRequestCooldown(null, issuedAt)).toBe(false);
+    expect(isWithinResetRequestCooldown(undefined, issuedAt)).toBe(false);
+  });
+
+  it("is not within cooldown for a long-expired, never-reissued token", () => {
+    const wayLater = new Date(expiresAt.getTime() + 24 * 60 * 60 * 1000);
+    expect(isWithinResetRequestCooldown(expiresAt, wayLater)).toBe(false);
+  });
+});
+
+describe("shouldAuditPasswordReset", () => {
+  it("audits admin and super_admin roles", () => {
+    expect(shouldAuditPasswordReset("admin")).toBe(true);
+    expect(shouldAuditPasswordReset("super_admin")).toBe(true);
+  });
+  it("does not audit a regular user, or a missing/unknown role", () => {
+    expect(shouldAuditPasswordReset("user")).toBe(false);
+    expect(shouldAuditPasswordReset(null)).toBe(false);
+    expect(shouldAuditPasswordReset(undefined)).toBe(false);
+    expect(shouldAuditPasswordReset("")).toBe(false);
+  });
+});
+
 describe("validateNewPassword", () => {
   it("rejects passwords shorter than 8 characters", () => {
     expect(validateNewPassword("short1", "short1")).toMatch(/at least 8/);
@@ -165,6 +214,50 @@ describe("requestPasswordReset", () => {
   it("is case-insensitive on email lookup, same as login/register", async () => {
     const mailer = fakeMailer();
     await requestPasswordReset("REAL@EXAMPLE.COM", store, mailer);
+    expect(store.setResetTokenCalls).toHaveLength(1);
+  });
+
+  it("cooldown: repeated requests for the same account within the cooldown window issue only the first token/email", async () => {
+    const mailer = fakeMailer();
+    const t0 = new Date("2026-01-01T00:00:00.000Z");
+    await requestPasswordReset("real@example.com", store, mailer, t0);
+
+    // Simulates an attacker rotating source IPs to bypass the per-IP
+    // forgotPasswordRateLimiter and repeatedly hit the same account.
+    for (const laterOffsetMs of [1_000, 60_000, 4 * 60_000]) {
+      await requestPasswordReset("real@example.com", store, mailer, new Date(t0.getTime() + laterOffsetMs));
+    }
+
+    expect(store.setResetTokenCalls).toHaveLength(1);
+    expect(mailer.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+
+    // Same generic void outcome as the "unknown email" case — no way for
+    // the caller to tell a cooldown-suppressed request apart from either
+    // a successful one or an unknown-email one.
+    await expect(
+      requestPasswordReset("real@example.com", store, mailer, new Date(t0.getTime() + 30_000)),
+    ).resolves.toBeUndefined();
+  });
+
+  it("cooldown: a new request after the cooldown window elapses issues a fresh token/email", async () => {
+    const mailer = fakeMailer();
+    const t0 = new Date("2026-01-01T00:00:00.000Z");
+    await requestPasswordReset("real@example.com", store, mailer, t0);
+    expect(store.setResetTokenCalls).toHaveLength(1);
+    const firstTokenHash = store.setResetTokenCalls[0].tokenHash;
+
+    const afterCooldown = new Date(t0.getTime() + PASSWORD_RESET_REQUEST_COOLDOWN_MS + 1_000);
+    await requestPasswordReset("real@example.com", store, mailer, afterCooldown);
+
+    expect(store.setResetTokenCalls).toHaveLength(2);
+    expect(mailer.sendPasswordResetEmail).toHaveBeenCalledTimes(2);
+    // A genuinely new token, not a resend of the same one.
+    expect(store.setResetTokenCalls[1].tokenHash).not.toBe(firstTokenHash);
+  });
+
+  it("cooldown: does not block the first request for an account that has never had a token issued", async () => {
+    const mailer = fakeMailer();
+    await requestPasswordReset("real@example.com", store, mailer);
     expect(store.setResetTokenCalls).toHaveLength(1);
   });
 

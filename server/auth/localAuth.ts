@@ -25,6 +25,7 @@ import {
   FORGOT_PASSWORD_RESPONSE_MESSAGE,
   forgotPasswordRateLimiter,
   resetPasswordRateLimiter,
+  shouldAuditPasswordReset,
   type PasswordResetStore,
   type PasswordResetMailer,
 } from "../passwordReset";
@@ -337,6 +338,28 @@ export async function setupAuth(app: Express) {
             : "This reset link is invalid or has expired. Please request a new one.";
         return res.status(400).json({ message });
       }
+
+      // Audit log for admin/super_admin accounts only, mirroring
+      // /api/auth/change-password above — only after the reset itself has
+      // already succeeded, and never including the token or password/hash.
+      // Fire-and-forget: a failure looking up the role or writing the
+      // entry must not turn an already-successful password reset into a
+      // reported failure (same reasoning as confirmPasswordReset's own
+      // best-effort session invalidation).
+      authStorage
+        .getUser(result.userId)
+        .then((user) => {
+          if (user && shouldAuditPasswordReset(user.role)) {
+            return authStorage.addAuditLogEntry({
+              actorUserId: user.id,
+              actorLabel: user.email || user.id,
+              action: "password_reset",
+              description: `${user.email || user.id} reset their password via the forgot-password flow`,
+            });
+          }
+        })
+        .catch((e) => console.error("Audit log (password reset) error:", e));
+
       res.json({ success: true });
     } catch (error) {
       console.error("Reset-password error:", error);

@@ -12,6 +12,16 @@ import rateLimit from "express-rate-limit";
 
 export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+// Per-account cooldown between reset emails, independent of the per-IP
+// forgotPasswordRateLimiter below — that one is keyed on req.ip and can be
+// stepped around by rotating source IPs (VPN, botnet, carrier NAT), which
+// would otherwise let an attacker mail-bomb one victim's inbox indefinitely.
+// A flat fraction of the 1-hour token TTL: short enough that a legitimate
+// user who mistypes their email or doesn't see the first one isn't stuck
+// waiting long, long enough to make repeat sends to the same account
+// meaningfully rarer than "once per IP rotation."
+export const PASSWORD_RESET_REQUEST_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 // Same minimum as /api/register and /api/auth/change-password in
 // server/auth/localAuth.ts.
 const MIN_PASSWORD_LENGTH = 8;
@@ -75,6 +85,39 @@ export function isResetTokenExpired(
   if (!expiresAt) return true;
   const expiry = expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
   return expiry.getTime() <= now.getTime();
+}
+
+/**
+ * Derives "was a reset token issued for this account within the cooldown
+ * window" from the existing passwordResetExpiresAt column alone — no new
+ * schema field. A token's issue time is always exactly
+ * (expiresAt - PASSWORD_RESET_TOKEN_TTL_MS), since generateResetToken sets
+ * expiresAt that way; reconstructing it here means requestPasswordReset can
+ * enforce the cooldown from data it already has to fetch anyway. Correctly
+ * resolves to false once a token has been consumed (setPasswordAndConsumeToken
+ * clears passwordResetExpiresAt to null) or has aged past the cooldown,
+ * including a token that expired naturally and was never re-requested.
+ */
+export function isWithinResetRequestCooldown(
+  expiresAt: Date | string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!expiresAt) return false;
+  const expiry = expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
+  const issuedAt = expiry.getTime() - PASSWORD_RESET_TOKEN_TTL_MS;
+  return now.getTime() - issuedAt < PASSWORD_RESET_REQUEST_COOLDOWN_MS;
+}
+
+/**
+ * Whether a successful password reset for this account role should produce
+ * an audit-log entry — mirrors the existing admin/super_admin-only check
+ * inline in /api/auth/change-password (server/auth/localAuth.ts). Kept as
+ * its own pure, testable predicate rather than duplicating the condition
+ * inline at the route, which touches the live DB via authStorage and isn't
+ * unit tested (see CLAUDE.md on server/routes.ts and server/storage.ts).
+ */
+export function shouldAuditPasswordReset(role: string | null | undefined): boolean {
+  return role === "admin" || role === "super_admin";
 }
 
 /** Returns a user-facing error string, or null when the new password is acceptable. */
@@ -147,6 +190,16 @@ export async function requestPasswordReset(
 
   const user = await store.findUserByEmail(normalizedEmail);
   if (!user) return;
+
+  // Per-account cooldown (see isWithinResetRequestCooldown) — silently skip
+  // issuing/re-emailing, the exact same void return and generic response as
+  // the "unknown email" path above, so this can't be distinguished from it
+  // by response body. Response *timing* was already decoupled from this
+  // function entirely in server/auth/localAuth.ts's fire-and-forget call,
+  // so branching here doesn't reopen a timing side-channel either.
+  if (isWithinResetRequestCooldown(user.passwordResetExpiresAt, now)) {
+    return;
+  }
 
   const { token, tokenHash, expiresAt } = generateResetToken(now);
   await store.setResetToken(user.id, tokenHash, expiresAt);
