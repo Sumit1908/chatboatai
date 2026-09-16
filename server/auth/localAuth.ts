@@ -9,15 +9,25 @@ import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
 import { authStorage } from "./storage";
 import { getSession } from "./session";
-import { sendVerificationEmail } from "../email";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../email";
 import {
   activateUserSession,
   clearActiveSessionIfMatch,
   getActiveSessionId,
+  invalidateAllUserSessions,
 } from "./singleSession";
 import { TRIAL_DAYS } from "../trialLimits";
 import { blockExpiredTrialWrites } from "../subscriptionGate";
 import { ensureCsrfToken, verifyCsrf } from "../csrf";
+import {
+  requestPasswordReset,
+  confirmPasswordReset,
+  FORGOT_PASSWORD_RESPONSE_MESSAGE,
+  forgotPasswordRateLimiter,
+  resetPasswordRateLimiter,
+  type PasswordResetStore,
+  type PasswordResetMailer,
+} from "../passwordReset";
 
 // 10 attempts per 15 minutes per IP — generous enough for a real user who
 // mistypes a password a few times, tight enough to slow down brute-forcing.
@@ -228,6 +238,109 @@ export async function setupAuth(app: Express) {
     } catch (error) {
       console.error("Change password error:", error);
       res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Real DB-backed implementation of the injectable interfaces
+  // server/passwordReset.ts defines — see that file for the actual
+  // request/confirm logic and server/passwordReset.test.ts for its
+  // coverage using a fake in-memory version of this same interface.
+  const resetStore: PasswordResetStore = {
+    async findUserByEmail(email) {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user?.email
+        ? {
+            id: user.id,
+            email: user.email,
+            passwordResetTokenHash: user.passwordResetTokenHash,
+            passwordResetExpiresAt: user.passwordResetExpiresAt,
+          }
+        : undefined;
+    },
+    async findUserByResetTokenHash(tokenHash) {
+      const [user] = await db.select().from(users).where(eq(users.passwordResetTokenHash, tokenHash));
+      return user?.email
+        ? {
+            id: user.id,
+            email: user.email,
+            passwordResetTokenHash: user.passwordResetTokenHash,
+            passwordResetExpiresAt: user.passwordResetExpiresAt,
+          }
+        : undefined;
+    },
+    async setResetToken(userId, tokenHash, expiresAt) {
+      await db
+        .update(users)
+        .set({ passwordResetTokenHash: tokenHash, passwordResetExpiresAt: expiresAt, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+    },
+    async setPasswordAndConsumeToken(userId, passwordHash) {
+      // Both writes commit together or not at all — a crash/dropped
+      // connection between them can never leave the password changed with
+      // the reset token still valid (or the token cleared with the old
+      // password still active). See PasswordResetStore's doc comment.
+      await db.transaction(async (tx) => {
+        await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
+        await tx
+          .update(users)
+          .set({ passwordResetTokenHash: null, passwordResetExpiresAt: null, updatedAt: new Date() })
+          .where(eq(users.id, userId));
+      });
+    },
+    async invalidateAllSessions(userId) {
+      // Best-effort by contract (see PasswordResetStore) — never throws,
+      // so a session-revocation failure can't undo the password change
+      // that already committed above. Still logged: every caught error
+      // here is a real bug worth fixing at the source.
+      try {
+        await invalidateAllUserSessions(userId);
+      } catch (error) {
+        console.error("Failed to invalidate sessions after password reset:", error);
+      }
+    },
+  };
+
+  const resetMailer: PasswordResetMailer = { sendPasswordResetEmail };
+
+  app.post("/api/forgot-password", forgotPasswordRateLimiter, (req, res) => {
+    const { email } = req.body || {};
+    // Fire-and-forget, same pattern as /api/register's sendVerificationEmail
+    // above — requestPasswordReset does a real DB write plus a network call
+    // to Resend for an existing email, but nothing at all for an unknown
+    // one. Awaiting it before responding would make the response
+    // measurably slower for a real account than a fake one, which is
+    // exactly the enumeration signal the identical response body below is
+    // meant to prevent. The token itself never reaches this log line
+    // (requestPasswordReset only ever throws from the mailer/DB, not the
+    // token generation path).
+    if (typeof email === "string" && email.trim()) {
+      requestPasswordReset(email, resetStore, resetMailer).catch((error) => {
+        console.error("Forgot-password error:", error);
+      });
+    }
+    // Identical response on every path, sent without waiting on the above —
+    // unknown email, in-flight send, eventual send failure, or success —
+    // so this endpoint can't be used to enumerate registered accounts by
+    // response body or response timing. See
+    // server/passwordReset.ts's FORGOT_PASSWORD_RESPONSE_MESSAGE.
+    res.json({ message: FORGOT_PASSWORD_RESPONSE_MESSAGE });
+  });
+
+  app.post("/api/reset-password", resetPasswordRateLimiter, async (req, res) => {
+    try {
+      const { token, newPassword, confirmPassword } = req.body || {};
+      const result = await confirmPasswordReset(token, newPassword, confirmPassword, resetStore);
+      if (!result.ok) {
+        const message =
+          result.reason === "invalid_password"
+            ? "Passwords must match and be at least 8 characters"
+            : "This reset link is invalid or has expired. Please request a new one.";
+        return res.status(400).json({ message });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Reset-password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 
