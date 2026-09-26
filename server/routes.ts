@@ -1,4 +1,5 @@
 import type { Express, RequestHandler } from "express";
+import { RETIRED_PAGE_REDIRECTS } from "@shared/retiredPages";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { normalizePhone } from "./phone";
@@ -325,6 +326,12 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Retired marketing pages -> matching home-page section (permanent, so search
+  // engines update). Registered before the SPA catch-all.
+  for (const [from, to] of Object.entries(RETIRED_PAGE_REDIRECTS)) {
+    app.get(from, (_req, res) => res.redirect(301, to));
+  }
+
   await ensureBillingPlansSeeded().catch((err) => {
     console.error("[BillingPlans] Seed failed:", err);
   });

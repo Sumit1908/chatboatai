@@ -1,13 +1,11 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft, LayoutGrid, CreditCard, HelpCircle, Mail } from "lucide-react";
+import { Home, ArrowLeft, CreditCard, Mail } from "lucide-react";
 import { SeoHead } from "@/components/seo-head";
 
 const HELPFUL_LINKS = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/features", label: "Features", icon: LayoutGrid },
   { href: "/pricing", label: "Pricing", icon: CreditCard },
-  { href: "/faq", label: "FAQ", icon: HelpCircle },
   { href: "/contact", label: "Contact", icon: Mail },
 ] as const;
 
@@ -16,7 +14,7 @@ export default function NotFound() {
     <div className="min-h-screen bg-[#F7FBF8] text-[#075E54] flex flex-col">
       <SeoHead
         title="Page Not Found | ChatBoatAI"
-        description="The page you requested was not found. Return to ChatBoatAI home, features, pricing, FAQ or contact support for WhatsApp Business API help."
+        description="The page you requested was not found. Return to the ChatBoatAI home page, pricing or contact our team."
         path="/404"
         robots="noindex, follow"
         includeOrganization={false}
@@ -34,7 +32,7 @@ export default function NotFound() {
           <h1 className="font-heading text-3xl md:text-4xl font-bold">Page not found</h1>
           <p className="text-[#075E54]/65 leading-relaxed">
             The page you requested does not exist or may have moved. Use the links below to continue
-            exploring ChatBoatAI — the CRM with WhatsApp and your business tools built in.
+            exploring ChatBoatAI — CRM software to manage leads, deals, follow-ups and your team.
           </p>
           <div className="flex flex-wrap justify-center gap-2 pt-2">
             {HELPFUL_LINKS.map(({ href, label, icon: Icon }) => (

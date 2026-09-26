@@ -23,13 +23,12 @@ export const CRM = {
   mist: "#F4FBF9",
 } as const;
 
-/** Headline accent: bright green → teal gradient text. */
-export const accentGradientText =
-  "bg-gradient-to-r from-[#86EFAC] via-[#34D399] to-[#5EEAD4] bg-clip-text text-transparent";
+/** Headline accent word (one solid brand colour on a light background). */
+export const accentGradientText = "text-[#0E8C7F]";
 
-/** Primary CTA on dark teal backgrounds. */
+/** Primary call-to-action button: solid brand colour, white text. */
 export const accentButton =
-  "bg-gradient-to-r from-[#4ADE80] to-[#2DD4BF] text-[#04322E] font-semibold shadow-lg shadow-emerald-900/25 hover:brightness-105 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200";
+  "bg-[#0E8C7F] text-white font-semibold shadow-sm hover:bg-[#0B6E66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6] focus-visible:ring-offset-2 transition-colors duration-200";
 
 /** ChatBoatAI logo mark — a hub with connected nodes ("everything connects here"). */
 export function BrandMark({ className = "h-9 w-9" }: { className?: string }) {

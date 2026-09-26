@@ -15,7 +15,7 @@ import { CheckoutAuthDialog } from "./checkout-auth-dialog";
  * same billing_plans rows Admin -> Pricing Plans edits - so prices, features,
  * "featured" and visibility are never duplicated in code.
  *
- * "Pay Now" goes straight into the EXISTING Razorpay checkout (the shared
+ * "Get Started" goes straight into the EXISTING Razorpay checkout (the shared
  * useRazorpayCheckout, also used by Billing). Only the plan id is sent; the
  * server prices it. Signed-out visitors first create an account / log in in a
  * dialog (a subscription must belong to an account), then checkout opens.
@@ -43,7 +43,8 @@ function splitFeatures(features: string[]) {
 
 function planAction(plan: PublicBillingPlan, plans: PublicBillingPlan[], status: SubscriptionStatus | undefined): CardAction {
   if (!plan.razorpayEnabled) {
-    return { kind: "link", href: "/contact", label: "Contact sales", note: "Talk to us to set up this plan." };
+    // Sales-led plan (Admin: "Razorpay self-serve checkout" off) - set up with our team.
+    return { kind: "link", href: "/contact", label: "Talk to Us", note: "We'll set this plan up with you." };
   }
   if (plan.checkoutAvailable === false) {
     return { kind: "link", href: "/contact", label: "Contact us", note: "Online payment is temporarily unavailable." };
@@ -139,7 +140,7 @@ export function PricingPlans() {
                   </>
                 ) : (
                   <>
-                    Pay Now <ArrowRight className="h-4 w-4" aria-hidden />
+                    Get Started <ArrowRight className="h-4 w-4" aria-hidden />
                   </>
                 )}
               </button>

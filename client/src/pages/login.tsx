@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FaWhatsapp } from "react-icons/fa";
+import { BrandMark } from "@/components/crm/brand";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle2, MessageCircle, Shield, Zap } from "lucide-react";
 import * as THREE from "three";
 import { SESSION_SUPERSEDED_KEY } from "@/hooks/use-auth";
@@ -307,14 +307,12 @@ export default function Login() {
       >
         <div className="max-w-md">
           <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-lg shadow-[#25D366]/25">
-              <FaWhatsapp className="h-6 w-6" />
-            </div>
+            <BrandMark className="h-12 w-12" />
             <div>
               <h1 className="font-heading text-2xl font-bold text-[#075E54]">
                 ChatBoatAI
               </h1>
-              <p className="text-xs text-[#075E54]/60 tracking-wide">CRM + WhatsApp Business</p>
+              <p className="text-xs text-[#075E54]/60 tracking-wide">CRM software &amp; setup</p>
             </div>
           </div>
 
@@ -367,9 +365,7 @@ export default function Login() {
 
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#25D366] text-white shadow-lg shadow-[#25D366]/25">
-              <FaWhatsapp className="h-5 w-5" />
-            </div>
+            <BrandMark className="h-10 w-10" />
             <h1 className="font-heading text-xl font-bold text-[#075E54]">
               ChatBoatAI
             </h1>

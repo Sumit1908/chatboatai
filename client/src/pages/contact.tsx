@@ -1,4 +1,3 @@
-import { Link } from "wouter";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -6,14 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, MessageSquare, Mail, Phone, MapPin } from "lucide-react";
-import {
-  HELP_NUMBER,
-  HELP_NUMBER_DISPLAY,
-  EMAIL_SUPPORT,
-  EMAIL_BILLING,
-} from "@/lib/marketing-content";
-import { ContentSeo } from "@/components/seo-head";
+import { MapPin } from "lucide-react";
+import { MarketingLayout } from "@/components/marketing-layout";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Contact() {
@@ -42,9 +35,7 @@ export default function Contact() {
       if (!res.ok) {
         toast({
           title: "Couldn't send your message",
-          description:
-            data.error ||
-            `Please email ${EMAIL_SUPPORT} or call ${HELP_NUMBER_DISPLAY} directly.`,
+          description: data.error || "Please try again in a few minutes.",
           variant: "destructive",
         });
         return;
@@ -58,7 +49,7 @@ export default function Contact() {
     } catch {
       toast({
         title: "Couldn't send your message",
-        description: `Please email ${EMAIL_SUPPORT} or call ${HELP_NUMBER_DISPLAY} directly.`,
+        description: "Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -67,31 +58,16 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <ContentSeo path="/contact" />
-      <nav className="border-b">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-              <span className="text-xl font-bold">ChatBoatAI</span>
-            </div>
-          </Link>
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" /> Back to Home
-            </Button>
-          </Link>
-        </div>
-      </nav>
-
+    <MarketingLayout>
       <main className="container mx-auto max-w-6xl px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Have questions or need help? We're here to assist you. Reach out to us through any of the channels below.
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#0E8C7F]">Contact</p>
+          <h1 className="mb-4 font-heading text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Need a Custom CRM? Let&apos;s Talk
+          </h1>
+          <p className="mx-auto max-w-2xl text-lg text-slate-600">
+            Tell us about your business, workflow and integrations. Our team will help you configure the right CRM
+            setup. For support or billing questions, use the same form.
           </p>
         </div>
 
@@ -122,7 +98,7 @@ export default function Contact() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" name="phone" type="tel" placeholder={HELP_NUMBER_DISPLAY} data-testid="input-phone" />
+                    <Input id="phone" name="phone" type="tel" placeholder="Your phone number (optional)" data-testid="input-phone" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
@@ -151,43 +127,6 @@ export default function Contact() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-primary" />
-                  Email Support
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-2">For general inquiries and support:</p>
-                <a href={`mailto:${EMAIL_SUPPORT}`} className="text-primary hover:underline font-medium">
-                  {EMAIL_SUPPORT}
-                </a>
-                <p className="text-muted-foreground mt-4 mb-2">For billing and payment issues:</p>
-                <a href={`mailto:${EMAIL_BILLING}`} className="text-primary hover:underline font-medium">
-                  {EMAIL_BILLING}
-                </a>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-primary" />
-                  Phone Support
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-2">Call us during business hours:</p>
-                <a href={`tel:+91${HELP_NUMBER}`} className="font-medium hover:underline">
-                  {HELP_NUMBER_DISPLAY}
-                </a>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Monday - Friday: 9:00 AM - 6:00 PM IST
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
                   Office Address
                 </CardTitle>
@@ -206,14 +145,13 @@ export default function Contact() {
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-2">Response Time</h3>
                 <p className="text-sm text-muted-foreground">
-                  We reply to every inquiry by email as soon as we can. 
-                  For urgent matters, please call our support line.
+                  We reply to every inquiry by email as soon as we can.
                 </p>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-    </div>
+    </MarketingLayout>
   );
 }

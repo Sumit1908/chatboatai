@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   Accordion,
@@ -6,7 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check, Wrench } from "lucide-react";
 import { ContentSeo } from "@/components/seo-head";
 import {
   FadeIn,
@@ -15,68 +16,48 @@ import {
   MarketingHeader,
 } from "@/components/marketing-layout";
 import { CrmHero, DEFAULT_HERO_DESCRIPTION } from "@/components/crm/crm-hero";
-import { CRM } from "@/components/crm/brand";
-import {
-  AiLayerSection,
-  IntegrationsGrid,
-  ModuleGrid,
-  SectionHeading,
-  WhatsAppSection,
-} from "@/components/crm/marketing-kit";
+import { INTEGRATIONS, IntegrationIcon } from "@/components/crm/brand";
+import { SectionHeading } from "@/components/crm/marketing-kit";
 import { PricingPlans } from "@/components/crm/pricing-plans";
 import { PRODUCT_SHOTS, ProductFrame } from "@/components/crm/product-frame";
-import { CRM_MODULES, faqs } from "@/lib/marketing-content";
+import { COMING_SOON, HOME_FEATURES, faqs } from "@/lib/marketing-content";
 
-// Only what works in the app today; planned modules are listed separately.
-const LIVE_MODULES = CRM_MODULES.filter((m) => m.status === "live");
-const SOON_MODULES = CRM_MODULES.filter((m) => m.status === "soon");
-
-const HOW_IT_WORKS = [
+const WORKFLOW_STEPS = [
   {
-    n: "01",
-    title: "Connect Your Business",
-    desc: "Create your account, then connect your WhatsApp Business number through Meta's official platform and import your contacts from a CSV.",
+    n: "1",
+    title: "Tell Us Your Workflow",
+    desc: "We understand how your business currently manages leads, customers and sales.",
   },
   {
-    n: "02",
-    title: "Manage Leads & Conversations",
-    desc: "Add every enquiry as a lead, reply to customers from the WhatsApp inbox, and schedule follow-ups and tasks so nothing slips.",
+    n: "2",
+    title: "Configure Your CRM",
+    desc: "We configure the CRM, users, pipeline and supported integrations around your requirements.",
   },
   {
-    n: "03",
-    title: "Close More Deals",
-    desc: "Move deals through your pipeline from New to Closed Won, and see deals won and revenue on your dashboard.",
+    n: "3",
+    title: "Run & Manage",
+    desc: "Your team uses the CRM while ChatBoatAI helps you manage the technology and integrations.",
   },
 ];
 
-// Every answer describes how the product works today - no promises beyond it.
-const HOME_FAQS = [
-  ...faqs.filter((f) => f.category === "general"),
-  {
-    q: "Are the AI tools available?",
-    a: "Not yet. AI features such as lead summaries, reply drafts and lead scoring are in development and are labelled “Coming soon”. They are not part of any plan today.",
-  },
-  ...faqs.filter((f) => f.category === "whatsapp").slice(0, 3),
-  ...faqs.filter((f) => f.category === "billing"),
-  {
-    q: "How do I pay for a plan?",
-    a: "Choose a plan on the Billing page inside the app and pay securely through Razorpay. Your plan's features and limits are shown before you pay.",
-  },
-];
+const LIVE_INTEGRATIONS = INTEGRATIONS.filter((i) => i.status === "live");
+const ROADMAP_INTEGRATIONS = INTEGRATIONS.filter((i) => i.status === "soon");
 
-/** Real screenshots of the app, one tab per area. */
+const outlineLink =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-50";
+
+/** Real screens from the app (sample data), one tab per area. */
 function ProductShowcase() {
   const [active, setActive] = useState(PRODUCT_SHOTS[0].id);
   const shot = PRODUCT_SHOTS.find((s) => s.id === active) ?? PRODUCT_SHOTS[0];
 
   return (
-    <section id="product" className="scroll-mt-24 overflow-hidden bg-[#04322E] px-4 py-16 text-white md:py-24">
+    <section id="product" className="scroll-mt-20 px-4 py-16 md:py-24">
       <div className="mx-auto max-w-6xl">
         <SectionHeading
-          light
-          eyebrow="Inside the app"
-          title="See your whole sales operation in one dashboard"
-          subtitle="Leads, pipeline, follow-ups, tasks, revenue and WhatsApp activity — these are real screens from ChatBoatAI, shown with sample data."
+          eyebrow="Product"
+          title="Everything Your Team Needs, In One CRM"
+          subtitle="Dashboard, leads, pipeline, follow-ups, tasks and customer conversations - these are real screens from ChatBoatAI, shown with sample data."
         />
         <div
           role="tablist"
@@ -96,8 +77,8 @@ function ProductShowcase() {
                 onClick={() => setActive(s.id)}
                 className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   selected
-                    ? "bg-white text-[#04322E]"
-                    : "bg-white/10 text-teal-50/80 ring-1 ring-white/15 hover:bg-white/15 hover:text-white"
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
                 }`}
                 data-testid={`product-tab-${s.id}`}
               >
@@ -107,8 +88,8 @@ function ProductShowcase() {
           })}
         </div>
         <div id="product-panel" role="tabpanel" aria-labelledby={`product-tab-${shot.id}`}>
-          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-teal-50/80 sm:text-base">{shot.blurb}</p>
-          <ProductFrame key={shot.id} shot={shot} className="text-teal-50" />
+          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-slate-600 sm:text-base">{shot.blurb}</p>
+          <ProductFrame key={shot.id} shot={shot} className="text-slate-500" />
         </div>
       </div>
     </section>
@@ -135,143 +116,189 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="relative min-h-screen text-[#04322E] selection:bg-teal-200/60" style={{ backgroundColor: CRM.mist }}>
+    <div className="relative min-h-screen bg-white text-slate-900 selection:bg-teal-200/60">
       <ContentSeo path="/" />
-      <MarketingHeader overlay />
+      <MarketingHeader />
 
       <main className="overflow-x-clip">
         <CrmHero description={heroDescription} />
 
-        {/* Features - statuses come from CRM_MODULES (single source of truth) */}
-        <section id="features" className="scroll-mt-24 px-4 py-16 md:py-24">
+        <ProductShowcase />
+
+        {/* Core CRM features - only what works in the app today */}
+        <section id="features" className="scroll-mt-20 border-y border-slate-200/70 bg-slate-50/70 px-4 py-16 md:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHeading
               eyebrow="Features"
-              title="Everything You Need to Manage Your Sales"
-              subtitle="Leads, contacts, deals, pipeline, follow-ups and tasks share one record of every customer — so your team always knows what to do next."
+              title="Everything You Need to Run Your CRM"
+              subtitle="Leads, deals, follow-ups and customer conversations in one place - so your team always knows what to do next."
             />
-            <ModuleGrid modules={LIVE_MODULES} />
-            {SOON_MODULES.length > 0 && (
-              <p className="mt-8 text-center text-sm text-[#04322E]/55">
-                Coming soon: {SOON_MODULES.map((m) => m.name).join(", ")} and AI tools.
-              </p>
-            )}
-            <div className="mt-6 text-center">
-              <a
-                href="/crm"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E8C7F] transition-colors hover:text-[#04322E]"
-              >
-                Explore the CRM <ArrowRight className="h-4 w-4" aria-hidden />
-              </a>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {HOME_FEATURES.map((feature, i) => {
+                const Icon = feature.icon;
+                return (
+                  <FadeIn key={feature.id} delay={(i % 4) * 0.05}>
+                    <div
+                      className={`h-full rounded-2xl border bg-white p-6 shadow-sm ${
+                        feature.service ? "border-[#0E8C7F]/30" : "border-slate-200"
+                      }`}
+                      data-testid={`feature-${feature.id}`}
+                    >
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-[#0E8C7F]">
+                          <Icon className="h-5 w-5" aria-hidden />
+                        </span>
+                        {feature.service && (
+                          <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#0E8C7F] ring-1 ring-teal-100">
+                            Service
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-heading text-base font-semibold text-slate-900">{feature.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600">{feature.desc}</p>
+                    </div>
+                  </FadeIn>
+                );
+              })}
             </div>
+            <p className="mt-8 text-center text-sm text-slate-500" data-testid="coming-soon">
+              Coming soon: {COMING_SOON.join(" · ")}
+            </p>
           </div>
         </section>
 
-        <AiLayerSection id="ai" title="Your CRM, With AI Built In" />
-
-        <WhatsAppSection
-          id="whatsapp"
-          title="Turn WhatsApp Into Your Sales Workspace"
-          showcase
-          className="border-y border-[#04322E]/10 bg-white"
-        />
-
-        <ProductShowcase />
-
-        {/* How it works */}
-        <section id="how-it-works" className="scroll-mt-24 px-4 py-16 md:py-24">
+        {/* How it works - the custom CRM service */}
+        <section id="how-it-works" className="scroll-mt-20 px-4 py-16 md:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHeading
               eyebrow="How it works"
-              title="From first enquiry to closed deal"
-              subtitle="No developers and no complicated migration."
+              title="Your Business. Your Workflow. Your CRM."
+              subtitle="Every business manages leads and customers differently. ChatBoatAI can be configured around your workflow - from CRM structure and user access to integrations and your pipeline."
             />
-            <div className="grid gap-6 md:grid-cols-3">
-              {HOW_IT_WORKS.map((step, i) => (
-                <FadeIn key={step.n} delay={i * 0.08}>
-                  <div className="relative h-full rounded-2xl border border-[#04322E]/10 bg-white p-7">
-                    <span className="font-heading text-4xl font-bold text-teal-200">{step.n}</span>
-                    <h3 className="mt-2 font-heading text-lg font-semibold text-[#04322E]">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[#04322E]/60">{step.desc}</p>
+            <div className="grid gap-4 md:grid-cols-3">
+              {WORKFLOW_STEPS.map((step, i) => (
+                <FadeIn key={step.n} delay={i * 0.06}>
+                  <div className="h-full rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0E8C7F] text-sm font-bold text-white">
+                      {step.n}
+                    </span>
+                    <h3 className="mt-4 font-heading text-lg font-semibold text-slate-900">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.desc}</p>
                   </div>
                 </FadeIn>
               ))}
             </div>
+            <div className="mt-10 text-center">
+              <Link href="/contact" className={outlineLink} data-testid="button-talk-about-crm">
+                Talk to Us About Your CRM <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
           </div>
         </section>
 
-        {/* Integrations */}
-        <section id="integrations" className="scroll-mt-24 border-y border-[#04322E]/10 bg-white px-4 py-16 md:py-24">
-          <div className="mx-auto max-w-6xl">
+        {/* Integrations - live ones, plus custom work as a service */}
+        <section id="integrations" className="scroll-mt-20 border-y border-slate-200/70 bg-slate-50/70 px-4 py-16 md:py-24">
+          <div className="mx-auto max-w-5xl">
             <SectionHeading
               eyebrow="Integrations"
-              title="Your business tools, connected to one CRM"
-              subtitle="WhatsApp is live today. The others are on our roadmap and are marked “Coming soon”."
+              title="Connect Your CRM With The Tools You Already Use"
+              subtitle="Connect your CRM with the business tools and communication channels your workflow depends on."
             />
-            <IntegrationsGrid />
+            <div className="grid gap-4 md:grid-cols-2">
+              {LIVE_INTEGRATIONS.map((integration) => (
+                <div
+                  key={integration.id}
+                  className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                  data-testid={`integration-${integration.id}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <IntegrationIcon integration={integration} className="h-11 w-11 rounded-xl bg-slate-50 ring-1 ring-slate-200" iconClassName="h-6 w-6" />
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                      Available
+                    </span>
+                  </div>
+                  <p className="mt-4 font-heading text-lg font-semibold text-slate-900">{integration.name} Business</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                    Connect your WhatsApp Business number through Meta&apos;s official platform: shared inbox, message
+                    templates, campaigns and delivery analytics next to your CRM.
+                  </p>
+                </div>
+              ))}
+              <div className="flex h-full flex-col rounded-2xl border border-[#0E8C7F]/30 bg-white p-6 shadow-sm" data-testid="integration-custom">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-[#0E8C7F] ring-1 ring-teal-100">
+                    <Wrench className="h-5 w-5" aria-hidden />
+                  </span>
+                  <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#0E8C7F] ring-1 ring-teal-100">
+                    Service
+                  </span>
+                </div>
+                <p className="mt-4 font-heading text-lg font-semibold text-slate-900">Custom integrations</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  Custom integrations available based on your business requirements. Tell us which tools your team uses
+                  and we&apos;ll discuss how to connect them.
+                </p>
+                <Link href="/contact" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E8C7F] hover:underline">
+                  Discuss an integration <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              </div>
+            </div>
+            {ROADMAP_INTEGRATIONS.length > 0 && (
+              <p className="mt-8 text-center text-sm text-slate-500" data-testid="integrations-roadmap">
+                On our roadmap: {ROADMAP_INTEGRATIONS.map((i) => i.name).join(", ")}.
+              </p>
+            )}
           </div>
         </section>
 
         {/* Pricing - plans come from GET /api/plans (Admin -> Pricing Plans) */}
-        <section id="pricing" className="scroll-mt-24 px-4 py-16 md:py-24">
+        <section id="pricing" className="scroll-mt-20 px-4 py-16 md:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHeading
               eyebrow="Pricing"
-              title="Simple plans that grow with your team"
+              title="Simple monthly plans"
               subtitle="Every plan includes the CRM and the WhatsApp integration. Pay securely with Razorpay and activate instantly."
             />
             <PricingPlans />
             <div className="mt-4 text-center">
-              <a
-                href="/pricing"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E8C7F] transition-colors hover:text-[#04322E]"
-              >
-                Compare plans in detail <ArrowRight className="h-4 w-4" aria-hidden />
-              </a>
+              <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E8C7F] hover:underline">
+                Compare plans <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
             </div>
           </div>
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="scroll-mt-24 border-t border-[#04322E]/10 px-4 py-16 md:py-24">
+        <section id="faq" className="scroll-mt-20 border-t border-slate-200/70 bg-slate-50/70 px-4 py-16 md:py-24">
           <div className="mx-auto max-w-3xl">
             <SectionHeading eyebrow="FAQ" title="Questions, answered" />
             <Accordion type="single" collapsible className="space-y-3">
-              {HOME_FAQS.map(({ q, a }, i) => (
-                <AccordionItem
-                  key={q}
-                  value={`faq-${i}`}
-                  className="rounded-xl border border-[#04322E]/10 bg-white px-5"
-                >
-                  <AccordionTrigger className="text-left font-heading text-[15px] font-semibold text-[#04322E] hover:no-underline">
+              {faqs.map(({ q, a }, i) => (
+                <AccordionItem key={q} value={`faq-${i}`} className="rounded-xl border border-slate-200 bg-white px-5">
+                  <AccordionTrigger className="text-left font-heading text-[15px] font-semibold text-slate-900 hover:no-underline">
                     {q}
                   </AccordionTrigger>
-                  <AccordionContent className="text-sm leading-relaxed text-[#04322E]/65">{a}</AccordionContent>
+                  <AccordionContent className="text-sm leading-relaxed text-slate-600">{a}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
-            <p className="mt-6 text-center text-sm text-[#04322E]/55">
-              More answers on the{" "}
-              <a href="/faq" className="font-medium text-[#0E8C7F] underline underline-offset-2">
-                FAQ page
-              </a>
-              , or{" "}
-              <a href="/contact" className="font-medium text-[#0E8C7F] underline underline-offset-2">
-                contact us
-              </a>
-              .
-            </p>
           </div>
         </section>
 
-        <section className="px-4 pb-16 md:pb-24">
+        <section className="px-4 py-16 md:py-24">
           <div className="mx-auto max-w-5xl">
             <MarketingCta
-              dark
-              title="Ready to Manage Your Business Smarter?"
-              subtitle="Bring your leads, deals, follow-ups and WhatsApp conversations into one CRM. Choose a plan and activate it instantly with secure Razorpay checkout."
-              ctaLabel="Get Started"
+              title="Need a Custom CRM? Let's Talk"
+              subtitle="Tell us about your business, workflow and integrations. Our team will help you configure the right CRM setup."
+              ctaLabel="Contact Us"
+              ctaHref="/contact"
             />
+            <p className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-slate-500">
+              <Check className="h-4 w-4 text-[#0E8C7F]" aria-hidden /> Prefer to start yourself?
+              <a href="/login?mode=register" className="font-semibold text-[#0E8C7F] hover:underline">
+                Create your account
+              </a>
+            </p>
           </div>
         </section>
       </main>

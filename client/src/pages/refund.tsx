@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { BrandLogo } from "@/components/crm/brand";
 import { LEGAL_LAST_UPDATED } from "@/lib/legal";
-import { EMAIL_SUPPORT, EMAIL_BILLING } from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
 
 export default function Refund() {
@@ -65,7 +64,7 @@ export default function Refund() {
             <h2 className="text-2xl font-semibold mb-4">4. How to Request a Refund</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">To request a refund:</p>
             <ol className="list-decimal pl-6 space-y-2 text-muted-foreground">
-              <li>Email us at <a href={`mailto:${EMAIL_SUPPORT}`} className="text-primary hover:underline">{EMAIL_SUPPORT}</a></li>
+              <li>Send us a request through our <Link href="/contact" className="text-primary hover:underline">Contact page</Link></li>
               <li>Include your account email and reason for the refund request</li>
               {/* OWNER REVIEW: the review and processing timelines below are business commitments. */}
               <li>We will review your request within 2 business days</li>
@@ -87,8 +86,8 @@ export default function Refund() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">6. Cancellation</h2>
             <p className="text-muted-foreground leading-relaxed">
-              You may cancel your subscription at any time by emailing{" "}
-              <a href={`mailto:${EMAIL_BILLING}`} className="text-primary hover:underline">{EMAIL_BILLING}</a>. Upon 
+              You may cancel your subscription at any time by sending a request through our{" "}
+              <Link href="/contact" className="text-primary hover:underline">Contact page</Link>. Upon 
               cancellation, you will continue to have access to the Service until the end of your 
               current billing period. No refunds will be provided for the remaining period.
             </p>
@@ -97,10 +96,7 @@ export default function Refund() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">7. Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">
-              If you have any questions about our Refund Policy, please contact us:
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Email: <a href={`mailto:${EMAIL_BILLING}`} className="text-primary hover:underline">{EMAIL_BILLING}</a>
+              If you have any questions about our Refund Policy, please send us a message through our <Link href="/contact" className="text-primary hover:underline">Contact page</Link>.
             </p>
           </section>
         </div>

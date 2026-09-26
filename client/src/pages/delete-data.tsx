@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, MessageSquare, Mail, Clock, Shield } from "lucide-react";
-import { EMAIL_INFO } from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
 
 export default function DeleteData() {
@@ -62,15 +61,14 @@ export default function DeleteData() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                To request deletion of your account and all associated data, please send an email to:
-              </p>
-              <p className="text-lg font-medium">
-                <a href={`mailto:${EMAIL_INFO}`} className="text-primary hover:underline" data-testid="link-privacy-email">
-                  {EMAIL_INFO}
-                </a>
+                To request deletion of your account and all associated data, send us a request through our{" "}
+                <Link href="/contact" className="text-primary hover:underline" data-testid="link-data-deletion-contact">
+                  Contact page
+                </Link>{" "}
+                with the subject &ldquo;Data deletion request&rdquo;.
               </p>
               <p className="text-muted-foreground">
-                Please include the following information in your email:
+                Please include the following information in your message:
               </p>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li>Your registered email address</li>

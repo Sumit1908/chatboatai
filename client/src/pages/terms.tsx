@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { BrandLogo } from "@/components/crm/brand";
 import { LEGAL_LAST_UPDATED, SERVICE_DESCRIPTION } from "@/lib/legal";
-import { EMAIL_INFO } from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
 
 export default function Terms() {
@@ -133,10 +132,7 @@ export default function Terms() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">
-              If you have any questions about these Terms, please contact us at:
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Email: <a href={`mailto:${EMAIL_INFO}`} className="text-primary hover:underline">{EMAIL_INFO}</a>
+              If you have any questions about these Terms, please send us a message through our <Link href="/contact" className="text-primary hover:underline">Contact page</Link>.
             </p>
           </section>
         </div>

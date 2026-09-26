@@ -19,8 +19,6 @@ import { DealsPage, PipelinePage } from "@/pages/crm/deals";
 import { FollowUpsPage, TasksPage } from "@/pages/crm/tasks";
 import ConnectedAppsPage from "@/pages/crm/connected-apps";
 import { AutomationPage, ReportsPage } from "@/pages/crm/coming-soon";
-import CrmProduct from "@/pages/crm-product";
-import IntegrationsPage from "@/pages/integrations";
 import Templates from "@/pages/templates";
 import TemplateEditor from "@/pages/template-editor";
 import Messages from "@/pages/messages";
@@ -47,14 +45,7 @@ import Admin from "@/pages/admin";
 import AdminUserDetail from "@/pages/admin-user-detail";
 import Billing from "@/pages/billing";
 import DeleteData from "@/pages/delete-data";
-import Features from "@/pages/features";
-import Trust from "@/pages/trust";
-import HowItWorks from "@/pages/how-it-works";
-import SetupGuide from "@/pages/setup-guide";
-import UseCases from "@/pages/use-cases";
-import Proof from "@/pages/proof";
 import Pricing from "@/pages/pricing";
-import Faq from "@/pages/faq";
 import NotFound from "@/pages/not-found";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -62,6 +53,15 @@ import { GoogleAnalytics } from "@/components/google-analytics";
 import type { Template, Campaign, DashboardMetrics } from "@shared/schema";
 import { normalizePrimaryDomain } from "@shared/primaryDomain";
 import { loginUrlFor, nextFromSearch } from "@/lib/next-path";
+import { RETIRED_PAGE_REDIRECTS } from "@shared/retiredPages";
+
+/** Retired marketing pages: the server 301-redirects them; this covers in-app navigation. */
+function RetiredPage({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+  return null;
+}
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -195,16 +195,12 @@ function PublicRouter() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      <Route path="/features" component={Features} />
-      <Route path="/crm" component={CrmProduct} />
-      <Route path="/integrations" component={IntegrationsPage} />
-      <Route path="/trust" component={Trust} />
-      <Route path="/how-it-works" component={HowItWorks} />
-      <Route path="/setup-guide" component={SetupGuide} />
-      <Route path="/use-cases" component={UseCases} />
-      <Route path="/proof" component={Proof} />
+      {Object.entries(RETIRED_PAGE_REDIRECTS).map(([from, to]) => (
+        <Route key={from} path={from}>
+          <RetiredPage to={to} />
+        </Route>
+      ))}
       <Route path="/pricing" component={Pricing} />
-      <Route path="/faq" component={Faq} />
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />

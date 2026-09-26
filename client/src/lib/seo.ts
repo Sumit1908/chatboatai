@@ -1,4 +1,4 @@
-import { faqs, EMAIL_INFO, EMAIL_SUPPORT, HELP_NUMBER } from "./marketing-content";
+import { faqs } from "./marketing-content";
 
 /** Canonical production origin — must match the live app host. */
 export const SITE_URL = "https://chatboatai.in";
@@ -8,7 +8,7 @@ export const SITE_PUBLISHER = "ChatBoatAI";
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 export const DEFAULT_KEYWORDS =
-  "CRM, lead management, sales pipeline, follow-ups, WhatsApp CRM, WhatsApp Business API, business integrations, ChatBoatAI";
+  "CRM software, CRM management software, lead management CRM, sales CRM, customer management, CRM integrations, CRM setup, CRM software India, ChatBoatAI";
 
 export type SeoRobots = "index, follow" | "noindex, nofollow" | "noindex, follow";
 
@@ -35,18 +35,7 @@ export function organizationJsonLd(): Record<string, unknown> {
     name: SITE_NAME,
     url: SITE_URL,
     logo: `${SITE_URL}/favicon.png`,
-    email: EMAIL_INFO,
-    telephone: `+91-${HELP_NUMBER}`,
     sameAs: [],
-    contactPoint: [
-      {
-        "@type": "ContactPoint",
-        telephone: `+91-${HELP_NUMBER}`,
-        contactType: "customer support",
-        email: EMAIL_SUPPORT,
-        availableLanguage: ["English", "Hindi"],
-      },
-    ],
   };
 }
 
@@ -59,7 +48,7 @@ export function softwareApplicationJsonLd(): Record<string, unknown> {
     operatingSystem: "Web",
     url: SITE_URL,
     description:
-      "All-in-one CRM for leads, contacts, sales pipeline, follow-ups and automation, with WhatsApp and other business integrations in one dashboard.",
+      "CRM software to manage leads, deals, sales pipelines, tasks, follow-ups and customer conversations, with CRM setup and integration help from the ChatBoatAI team.",
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/pricing`,
@@ -113,8 +102,7 @@ export function contactPageJsonLd(): Record<string, unknown> {
     mainEntity: {
       "@type": "Organization",
       name: SITE_NAME,
-      email: EMAIL_INFO,
-      telephone: `+91-${HELP_NUMBER}`,
+      url: SITE_URL,
     },
   };
 }
@@ -127,113 +115,29 @@ function crumbs(...trail: Array<{ name: string; path: string }>) {
 export const CONTENT_SEO: Record<string, SeoPageConfig> = {
   "/": {
     path: "/",
-    title: "All-in-One CRM & Business Integrations | ChatBoatAI",
+    title: "ChatBoatAI — CRM Software to Build & Manage Your Business",
     description:
-      "Manage leads, contacts, sales pipeline, follow-ups and automation in one CRM dashboard — with WhatsApp and your business tools connected. Simple monthly plans.",
+      "Build, manage and operate your complete CRM with ChatBoatAI. Manage leads, customers, sales pipelines, teams, follow-ups and integrations from one platform.",
     keywords: DEFAULT_KEYWORDS,
-    jsonLd: [softwareApplicationJsonLd()],
-  },
-  "/features": {
-    path: "/features",
-    title: "CRM Features: Leads, Pipeline & Follow-ups | ChatBoatAI",
-    description:
-      "ChatBoatAI CRM features: leads, contacts, deals, a visual sales pipeline, follow-ups and tasks on one dashboard, with the WhatsApp integration built in. Automation and AI coming soon.",
-    keywords:
-      "CRM features, lead management, sales pipeline, follow-up tracking, deal tracking, WhatsApp CRM, ChatBoatAI",
-    jsonLd: [
-      crumbs({ name: "Features", path: "/features" }),
-      softwareApplicationJsonLd(),
-    ],
-  },
-  "/crm": {
-    path: "/crm",
-    title: "CRM for Growing Businesses | Leads, Deals & Pipeline | ChatBoatAI",
-    description:
-      "ChatBoatAI CRM: leads, contacts, deals, a visual sales pipeline, follow-ups and tasks in one dashboard, with WhatsApp built in. See what's live today and what's coming next.",
-    keywords: "CRM software India, sales CRM, lead management CRM, sales pipeline CRM, WhatsApp CRM, ChatBoatAI",
-    jsonLd: [crumbs({ name: "CRM", path: "/crm" }), softwareApplicationJsonLd()],
-  },
-  "/integrations": {
-    path: "/integrations",
-    title: "CRM Integrations: WhatsApp & More | ChatBoatAI",
-    description:
-      "Connect your business tools to one CRM. The official WhatsApp Business integration is live; Gmail, Facebook Leads, Google, Google Calendar, Slack, Zapier and HubSpot are coming soon.",
-    keywords: "CRM integrations, WhatsApp CRM integration, WhatsApp Business API, CRM Gmail integration, ChatBoatAI integrations",
-    jsonLd: [crumbs({ name: "Integrations", path: "/integrations" }), softwareApplicationJsonLd()],
-  },
-  "/trust": {
-    path: "/trust",
-    title: "Trust & Data Security | ChatBoatAI CRM",
-    description:
-      "How ChatBoatAI protects your CRM data: workspace isolation on every request, hashed passwords, HTTPS, Razorpay payments and an official Meta WhatsApp integration.",
-    keywords:
-      "CRM data security, workspace isolation, secure CRM, official WhatsApp API, ChatBoatAI trust",
-    jsonLd: [crumbs({ name: "Trust", path: "/trust" })],
-  },
-  "/how-it-works": {
-    path: "/how-it-works",
-    title: "How ChatBoatAI CRM Works | From Lead to Closed Deal",
-    description:
-      "Set up your CRM in an afternoon: add or import leads, build your sales pipeline, schedule follow-ups, then connect WhatsApp to message customers from the same workspace.",
-    keywords:
-      "how CRM works, CRM setup, sales pipeline setup, lead follow-up, WhatsApp CRM integration, ChatBoatAI",
-    jsonLd: [crumbs({ name: "How it works", path: "/how-it-works" })],
-  },
-  "/setup-guide": {
-    path: "/setup-guide",
-    title: "ChatBoatAI Setup Guide | CRM & WhatsApp Integration",
-    description:
-      "Step-by-step guide to set up your ChatBoatAI CRM — leads, deals and follow-ups — and connect the WhatsApp Business integration through Meta's official platform.",
-    keywords:
-      "CRM setup guide, WhatsApp Business API setup, Meta embedded signup, WhatsApp integration, ChatBoatAI",
-    jsonLd: [crumbs({ name: "Setup guide", path: "/setup-guide" })],
-  },
-  "/use-cases": {
-    path: "/use-cases",
-    title: "CRM Use Cases for Real Estate, Education & More | ChatBoatAI",
-    description:
-      "How real estate, education, D2C and agency teams use ChatBoatAI to track leads, run a sales pipeline, schedule follow-ups and message customers on WhatsApp.",
-    keywords:
-      "CRM for real estate, CRM for education, CRM for agencies, sales CRM India, WhatsApp CRM, ChatBoatAI",
-    jsonLd: [crumbs({ name: "Use cases", path: "/use-cases" })],
-  },
-  "/proof": {
-    path: "/proof",
-    title: "Our Commitments | ChatBoatAI",
-    description:
-      "The commitments ChatBoatAI makes to customers: no over-promising, clear monthly pricing, and human support when you need it.",
-    keywords:
-      "ChatBoatAI reviews, ChatBoatAI customers, CRM testimonials, WhatsApp CRM customers",
-    jsonLd: [crumbs({ name: "Proof", path: "/proof" })],
+    jsonLd: [softwareApplicationJsonLd(), faqPageJsonLd()],
   },
   "/pricing": {
     path: "/pricing",
-    title: "CRM Pricing Plans | ChatBoatAI",
+    title: "CRM Software Pricing | ChatBoatAI",
     description:
-      "Simple ChatBoatAI plans that include the CRM — leads, deals, pipeline, follow-ups and tasks — plus the WhatsApp integration. Pay securely with Razorpay and activate instantly.",
-    keywords:
-      "CRM pricing India, CRM subscription plans, WhatsApp CRM pricing, ChatBoatAI plans",
+      "Simple monthly ChatBoatAI plans: the CRM for leads, deals, pipeline, tasks and follow-ups, plus WhatsApp. Pay securely with Razorpay, or talk to us about a custom CRM setup.",
+    keywords: "CRM software pricing, CRM plans India, sales CRM pricing, ChatBoatAI plans",
     jsonLd: [
       crumbs({ name: "Pricing", path: "/pricing" }),
       softwareApplicationJsonLd(),
     ],
   },
-  "/faq": {
-    path: "/faq",
-    title: "ChatBoatAI FAQ | CRM, WhatsApp Integration & Billing",
-    description:
-      "What ChatBoatAI does today and what's coming soon, how the WhatsApp integration works, Meta conversation charges and billing — answered.",
-    keywords:
-      "ChatBoatAI FAQ, CRM questions, WhatsApp integration FAQ, Meta conversation charges, CRM pricing",
-    jsonLd: [crumbs({ name: "FAQ", path: "/faq" }), faqPageJsonLd()],
-  },
   "/contact": {
     path: "/contact",
-    title: "Contact ChatBoatAI | Sales & Support",
+    title: "Contact ChatBoatAI | Custom CRM Setup & Support",
     description:
-      "Contact ChatBoatAI for CRM setup, WhatsApp integration, billing and support. Call +91 9336791807 or email thecleverwork@gmail.com.",
-    keywords:
-      "contact ChatBoatAI, CRM support, WhatsApp integration support, billing support",
+      "Tell us about your business, workflow and integrations - our team will help you set up the right CRM. Support and billing questions welcome too.",
+    keywords: "custom CRM setup, CRM implementation, CRM integrations, contact ChatBoatAI",
     jsonLd: [crumbs({ name: "Contact", path: "/contact" }), contactPageJsonLd()],
   },
   "/privacy": {
@@ -264,7 +168,7 @@ export const CONTENT_SEO: Record<string, SeoPageConfig> = {
     path: "/delete-data",
     title: "User Data Deletion Requests | ChatBoatAI Privacy",
     description:
-      "Request deletion of your ChatBoatAI account and associated CRM and WhatsApp data. Steps for data removal requests, timelines and support contacts.",
+      "Request deletion of your ChatBoatAI account and associated CRM and WhatsApp data through our Contact page, and what information to include.",
     keywords: "data deletion request, GDPR delete account, ChatBoatAI delete data, WhatsApp data removal",
     jsonLd: [crumbs({ name: "Data Deletion", path: "/delete-data" })],
   },
