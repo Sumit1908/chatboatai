@@ -7,14 +7,16 @@
 export const REQUIRED_ENV = [
   { name: "DATABASE_URL", why: "database connection" },
   { name: "SESSION_SECRET", why: "signing login sessions" },
-  {
-    name: "FACEBOOK_APP_SECRET",
-    why: "verifying Meta WhatsApp webhooks - without it every incoming WhatsApp message and status update is rejected",
-  },
 ] as const;
 
 /** Features that stay switched off (with a warning) when these are missing. */
 export const RECOMMENDED_ENV = [
+  // Not required: without it verifyMetaWebhookSignature fails closed, so the
+  // webhook rejects every POST (403) instead of accepting unsigned payloads.
+  {
+    name: "FACEBOOK_APP_SECRET",
+    why: "verifying Meta WhatsApp webhooks (every incoming WhatsApp message and status update is rejected until it is set)",
+  },
   { name: "FACEBOOK_APP_ID", why: "connecting WhatsApp numbers with Facebook embedded signup" },
   { name: "APP_URL", why: "links in emails and the Facebook login callback" },
   { name: "RAZORPAY_KEY_ID", why: "checkout" },

@@ -18,18 +18,19 @@ describe("checkEnvironment", () => {
     expect(checkEnvironment(fullEnv)).toEqual({ errors: [], warnings: [] });
   });
 
-  it("fails clearly when FACEBOOK_APP_SECRET is missing or blank", () => {
+  it("only warns (does not block the deploy) when FACEBOOK_APP_SECRET is missing or blank", () => {
     for (const value of [undefined, "", "   "]) {
-      const { errors } = checkEnvironment({ ...fullEnv, FACEBOOK_APP_SECRET: value });
-      expect(errors).toHaveLength(1);
-      expect(errors[0]).toContain("FACEBOOK_APP_SECRET");
-      expect(errors[0]).toContain("webhooks");
+      const { errors, warnings } = checkEnvironment({ ...fullEnv, FACEBOOK_APP_SECRET: value });
+      expect(errors).toEqual([]);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain("FACEBOOK_APP_SECRET");
+      expect(warnings[0]).toContain("rejected");
     }
   });
 
   it("fails for the other required variables too", () => {
     const { errors } = checkEnvironment({});
-    expect(errors.map((e) => e.split(" ")[4])).toEqual(["DATABASE_URL", "SESSION_SECRET", "FACEBOOK_APP_SECRET"]);
+    expect(errors.map((e) => e.split(" ")[4])).toEqual(["DATABASE_URL", "SESSION_SECRET"]);
   });
 
   it("only warns about optional integrations", () => {

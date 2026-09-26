@@ -5,7 +5,7 @@
  *
  * Exits 1 - so the deploy stops before `drizzle-kit push` touches the
  * schema and the previous version keeps serving - when:
- *   - a required environment variable is missing (incl. FACEBOOK_APP_SECRET)
+ *   - a required environment variable is missing (DATABASE_URL, SESSION_SECRET)
  *   - contacts_account_phone_uidx / messages_whatsapp_id_uidx are missing
  */
 import "dotenv/config";
