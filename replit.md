@@ -69,9 +69,9 @@ The platform supports multiple WhatsApp Business numbers with account switching:
 ### Authentication & Subscription
 
 - **Authentication**: Replit Auth with Google login support via `/api/login` and `/api/logout` endpoints
-- **User Model**: Extended user schema with roles (super_admin, admin, user), subscription status (trial, active, canceled, expired), payment tracking (hasPaid, grantedFreeAccess), and trial end date
+- **User Model**: Extended user schema with roles (super_admin, admin, user), subscription status (active, inactive, cancelled; "trial" only on legacy rows), payment tracking (hasPaid, grantedFreeAccess)
 - **Access Control**: Regular users require active subscription or free access grant; super_admin can view all users and grant free access
-- **Pricing**: ₹799/month subscription with 7-day free trial
+- **Pricing**: paid monthly plans managed in Admin → Pricing Plans (no free trial)
 
 ### Public Pages
 

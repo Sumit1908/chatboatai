@@ -13,33 +13,12 @@ import type { BillingPlan } from "@shared/billingPlans";
 import { and, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { getBillingPlanById } from "./billingPlans";
 
-export const TRIAL_DAYS = 7;
-export const TRIAL_MAX_CONTACTS = 100;
-export const TRIAL_MAX_MESSAGES_TOTAL = 1000;
-
-export const TRIAL_CONTACT_LIMIT_MESSAGE = `Trial accounts can add up to ${TRIAL_MAX_CONTACTS} contacts. Subscribe to add more.`;
-export const TRIAL_MESSAGE_LIMIT_MESSAGE = `Trial accounts can send up to ${TRIAL_MAX_MESSAGES_TOTAL} total messages in the trial period. Subscribe to send more.`;
-
-const MS_PER_TRIAL_DAY = 24 * 60 * 60 * 1000;
-
-/** Cap trial at TRIAL_DAYS from signup — fixes accounts created with a longer trial. */
-export function getEffectiveTrialEndsAt(user: User): Date | null {
-  if (user.subscriptionStatus !== "trial" || !user.trialEndsAt) return null;
-
-  const storedEnd = new Date(user.trialEndsAt);
-  if (!user.createdAt) return storedEnd;
-
-  const cappedEnd = new Date(new Date(user.createdAt).getTime() + TRIAL_DAYS * MS_PER_TRIAL_DAY);
-  return storedEnd < cappedEnd ? storedEnd : cappedEnd;
-}
-
-export function isTrialUser(user: User): boolean {
-  if (user.role === "super_admin" || user.grantedFreeAccess) return false;
-  if (user.hasPaid && user.subscriptionStatus === "active") return false;
-
-  const endsAt = getEffectiveTrialEndsAt(user);
-  return user.subscriptionStatus === "trial" && !!endsAt && endsAt > new Date();
-}
+/**
+ * Plan limits (contacts, messages, WhatsApp numbers, templates, users) for
+ * paying customers. ChatBoatAI has no free trial: an account without an
+ * active plan (or admin-granted free access) can't write at all - see
+ * subscriptionGate.ts - so only paid plans need limits here.
+ */
 
 export function isPaidActiveUser(user: User): boolean {
   if (user.role === "super_admin" || user.grantedFreeAccess) return false;
@@ -135,19 +114,24 @@ export async function countUserTemplates(userId: string): Promise<number> {
   return Number(row?.count) || 0;
 }
 
-export async function countUserTeamSeats(accountId: string): Promise<number> {
-  const [row] = await db
-    .select({ count: sql<number>`count(*)::int` })
+/**
+ * The people using a customer's plan: everyone invited (pending or accepted)
+ * to ANY of the owner's WhatsApp numbers, each email counted once. The plan's
+ * user limit applies per customer, not per number, so it can't be multiplied
+ * by connecting more numbers. Callers add 1 for the owner.
+ */
+export async function listOwnerMemberEmails(ownerUserId: string): Promise<Set<string>> {
+  const rows = await db
+    .selectDistinct({ email: sql<string>`lower(${teamMembers.memberEmail})` })
     .from(teamMembers)
-    .where(and(eq(teamMembers.accountId, accountId), sql`${teamMembers.status} <> 'revoked'`));
-  // +1 for the owner seat
-  return (Number(row?.count) || 0) + 1;
+    .where(and(eq(teamMembers.ownerUserId, ownerUserId), sql`${teamMembers.status} <> 'revoked'`));
+  return new Set(rows.map((r) => r.email));
 }
 
 type LimitResult = { ok: true } | { ok: false; message: string; code: string };
 
 async function resolvePlanLimits(user: User): Promise<{
-  mode: "none" | "trial" | "plan";
+  mode: "none" | "plan";
   plan?: BillingPlan;
   maxContacts: number | null;
   maxMessagesTotal: number | null;
@@ -165,18 +149,6 @@ async function resolvePlanLimits(user: User): Promise<{
       maxTemplates: null,
       maxTeamSeats: null,
       usageWindowStart: null,
-    };
-  }
-
-  if (isTrialUser(user)) {
-    return {
-      mode: "trial",
-      maxContacts: TRIAL_MAX_CONTACTS,
-      maxMessagesTotal: TRIAL_MAX_MESSAGES_TOTAL,
-      maxWhatsappNumbers: 1,
-      maxTemplates: null,
-      maxTeamSeats: 1,
-      usageWindowStart: user.createdAt ? new Date(user.createdAt) : null,
     };
   }
 
@@ -208,22 +180,6 @@ async function resolvePlanLimits(user: User): Promise<{
     maxTemplates: null,
     maxTeamSeats: null,
     usageWindowStart: null,
-  };
-}
-
-export async function getTrialUsage(userId: string) {
-  const [contactCount, messagesSentTotal] = await Promise.all([
-    countUserContacts(userId),
-    countUserMessagesSentInWindow(userId),
-  ]);
-
-  return {
-    contactCount,
-    contactLimit: TRIAL_MAX_CONTACTS,
-    contactsRemaining: Math.max(0, TRIAL_MAX_CONTACTS - contactCount),
-    messagesSentTotal,
-    messageTotalLimit: TRIAL_MAX_MESSAGES_TOTAL,
-    messagesRemainingTotal: Math.max(0, TRIAL_MAX_MESSAGES_TOTAL - messagesSentTotal),
   };
 }
 
@@ -269,11 +225,8 @@ export async function assertCanAddContacts(
   if (current + additionalContacts > limits.maxContacts) {
     return {
       ok: false,
-      code: limits.mode === "trial" ? "trial_contact_limit" : "plan_contact_limit",
-      message:
-        limits.mode === "trial"
-          ? TRIAL_CONTACT_LIMIT_MESSAGE
-          : `Your ${limits.plan?.name ?? "current"} plan allows up to ${limits.maxContacts.toLocaleString("en-IN")} contacts. Upgrade to add more.`,
+      code: "plan_contact_limit",
+      message: `Your ${limits.plan?.name ?? "current"} plan allows up to ${limits.maxContacts.toLocaleString("en-IN")} contacts. Upgrade to add more.`,
     };
   }
   return { ok: true };
@@ -292,13 +245,11 @@ export async function assertCanSendMessages(
     const remaining = Math.max(0, limits.maxMessagesTotal - sentTotal);
     return {
       ok: false,
-      code: limits.mode === "trial" ? "trial_message_limit" : "plan_message_limit",
+      code: "plan_message_limit",
       message:
         remaining > 0
-          ? `You can only send ${remaining} more message${remaining === 1 ? "" : "s"} in your current ${limits.mode === "trial" ? "trial" : "subscription"} period.`
-          : limits.mode === "trial"
-            ? TRIAL_MESSAGE_LIMIT_MESSAGE
-            : `Your ${limits.plan?.name ?? "current"} plan allows ${limits.maxMessagesTotal.toLocaleString("en-IN")} total messages per subscription period. Upgrade to send more.`,
+          ? `You can only send ${remaining} more message${remaining === 1 ? "" : "s"} in your current subscription period.`
+          : `Your ${limits.plan?.name ?? "current"} plan allows ${limits.maxMessagesTotal.toLocaleString("en-IN")} total messages per subscription period. Upgrade to send more.`,
     };
   }
   return { ok: true };
@@ -320,10 +271,7 @@ export async function assertCanAddWhatsappNumber(user: User): Promise<LimitResul
     return {
       ok: false,
       code: "plan_whatsapp_limit",
-      message:
-        limits.mode === "trial"
-          ? "Trial accounts can connect 1 WhatsApp number. Subscribe to add more."
-          : `Your ${limits.plan?.name ?? "current"} plan allows ${limits.maxWhatsappNumbers} WhatsApp number${limits.maxWhatsappNumbers === 1 ? "" : "s"}. Upgrade to add more.`,
+      message: `Your ${limits.plan?.name ?? "current"} plan allows ${limits.maxWhatsappNumbers} WhatsApp number${limits.maxWhatsappNumbers === 1 ? "" : "s"}. Upgrade to add more.`,
     };
   }
   return { ok: true };
@@ -344,19 +292,26 @@ export async function assertCanCreateTemplate(user: User): Promise<LimitResult> 
   return { ok: true };
 }
 
-export async function assertCanAddTeamSeat(
-  user: User,
-  accountId: string,
-): Promise<LimitResult> {
+/**
+ * Can `user` (the account owner) give `memberEmail` access? Enforces the
+ * plan's user limit (owner included). Re-inviting someone who already uses
+ * the plan on another of the owner's numbers doesn't take a new seat.
+ */
+export async function assertCanAddTeamSeat(user: User, memberEmail: string): Promise<LimitResult> {
   const limits = await resolvePlanLimits(user);
   if (limits.maxTeamSeats == null) return { ok: true };
 
-  const current = await countUserTeamSeats(accountId);
+  const members = await listOwnerMemberEmails(user.id);
+  const email = memberEmail.toLowerCase().trim();
+  if (members.has(email) || email === user.email?.toLowerCase()) return { ok: true };
+
+  const current = members.size + 1; // + the owner
   if (current >= limits.maxTeamSeats) {
+    const max = limits.maxTeamSeats;
     return {
       ok: false,
       code: "plan_seat_limit",
-      message: `Your ${limits.plan?.name ?? "current"} plan allows ${limits.maxTeamSeats} team seat${limits.maxTeamSeats === 1 ? "" : "s"}. Upgrade to invite more.`,
+      message: `Your ${limits.plan?.name ?? "current"} plan allows up to ${max} users (including you), and you've reached that limit. Remove a team member to add someone new.`,
     };
   }
   return { ok: true };

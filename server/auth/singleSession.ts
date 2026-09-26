@@ -35,3 +35,23 @@ export async function clearActiveSessionIfMatch(userId: string, sessionId: strin
     [userId, sessionId],
   );
 }
+
+/**
+ * Revoke every session for a user, with no exception — unlike
+ * activateUserSession above (which keeps the caller's own session alive),
+ * this is for security events where nothing that existed before should
+ * keep working: currently only a successful password reset, which must
+ * force a fresh login everywhere, not just on other devices.
+ */
+export async function invalidateAllUserSessions(userId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ activeSessionId: null, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  await pool.query(
+    `DELETE FROM sessions
+     WHERE sess->'passport'->'user'->'claims'->>'sub' = $1`,
+    [userId],
+  );
+}

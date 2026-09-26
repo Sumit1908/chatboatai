@@ -25,6 +25,23 @@ process.on("uncaughtException", (err) => {
 });
 
 const app = express();
+
+// Render puts exactly one reverse proxy (its own edge router) in front of
+// this instance, which terminates TLS and forwards over plain HTTP with
+// X-Forwarded-For/X-Forwarded-Proto set. Without this, Express's default
+// trust proxy = false means: req.ip is always Render's internal proxy
+// address (identical for every request, so express-rate-limit's default
+// req.ip keying - used by both the login and super-admin-recovery limiters -
+// buckets all users together instead of per-client), and req.protocol/
+// req.secure report "http" even over real HTTPS. `1` = trust exactly one
+// hop (the immediate proxy) and use the X-Forwarded-For entry just before
+// it as the client IP - the correct, safest setting for this single-hop
+// deployment (not `true`, which would trust an attacker-supplied chain of
+// arbitrary length). Must be set before any middleware/routes that read
+// req.ip / req.protocol / req.secure, so it's set immediately after the
+// app is created.
+app.set("trust proxy", 1);
+
 const httpServer = createServer(app);
 
 registerSecurityAndCanonicalMiddleware(app);
@@ -161,6 +178,14 @@ app.use((req, res, next) => {
     }
 
     return res.status(status).json({ message });
+  });
+
+  // Unmatched API paths must not fall through to the SPA catch-all below:
+  // that answered them with index.html and a 200, which the client then
+  // failed to parse as JSON ("Unexpected token '<'") instead of seeing a
+  // clear 404.
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ message: "Not found" });
   });
 
   // importantly only setup vite in development and after

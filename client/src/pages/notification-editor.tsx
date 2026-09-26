@@ -18,6 +18,7 @@ import {
 import { Send, Clock, Users, MessageSquare, Zap, AlertCircle, Check, Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { fromLocalInputValue, toLocalInputValue } from "@/lib/datetime";
 import type { Template, ContactList, Notification, WhatsAppAccount } from "@shared/schema";
 
 function isConnectedAccount(account: WhatsAppAccount): boolean {
@@ -80,7 +81,7 @@ export default function NotificationEditor() {
       setSelectedListIds(notification.listIds || []);
       setHeaderMediaUrl(notification.headerMediaUrl || "");
       if (notification.scheduledAt) {
-        setScheduledAt(new Date(notification.scheduledAt).toISOString().slice(0, 16));
+        setScheduledAt(toLocalInputValue(notification.scheduledAt));
       }
     }
   }, [notification]);
@@ -162,7 +163,7 @@ export default function NotificationEditor() {
         templateId: selectedTemplateId,
         listIds: selectedListIds,
         headerMediaUrl: headerMediaUrl || templateMediaUrl || undefined,
-        scheduledAt: sendNow ? undefined : scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+        scheduledAt: sendNow ? undefined : fromLocalInputValue(scheduledAt),
         status: scheduledAt && !sendNow ? "scheduled" : "draft",
       };
 
@@ -357,7 +358,7 @@ export default function NotificationEditor() {
                   <div className="flex items-center space-x-2 opacity-50">
                     <RadioGroupItem value="segments" id="segments" disabled />
                     <Label htmlFor="segments" className="font-normal">Smart Segments</Label>
-                    <Badge variant="outline" className="text-xs">Upgrade required</Badge>
+                    <Badge variant="outline" className="text-xs">Coming soon</Badge>
                   </div>
                 </RadioGroup>
               </div>

@@ -5,6 +5,8 @@ import { index, jsonb, pgTable, timestamp, varchar, boolean } from "drizzle-orm/
 export type UserRole = "super_admin" | "admin" | "user";
 
 // Subscription status types
+// "trial" is legacy: free trials were removed, but older rows may still hold it
+// (they grant no access). New accounts start "inactive" until they pay.
 export type SubscriptionStatus = "active" | "inactive" | "trial" | "cancelled";
 
 // Session storage table.
@@ -34,7 +36,7 @@ export const users = pgTable("users", {
   subscriptionId: varchar("subscription_id"),
   hasPaid: boolean("has_paid").notNull().default(false),
   grantedFreeAccess: boolean("granted_free_access").notNull().default(false),
-  trialEndsAt: timestamp("trial_ends_at"),
+  trialEndsAt: timestamp("trial_ends_at"), // legacy (no trials any more); kept for history
   razorpayCustomerId: varchar("razorpay_customer_id"),
   razorpaySubscriptionId: varchar("razorpay_subscription_id"),
   /** Active paid plan id from billing_plans (set on checkout / webhook). */
@@ -43,6 +45,12 @@ export const users = pgTable("users", {
   subscriptionEndsAt: timestamp("subscription_ends_at"),
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerificationToken: varchar("email_verification_token"),
+  // Forgot-password flow (server/passwordReset.ts). Only a SHA-256 hash of
+  // the emailed token is ever stored, never the raw token itself — same
+  // reasoning as passwordHash above, so a DB read alone can't reset an
+  // account. Both cleared together once the token is used or replaced.
+  passwordResetTokenHash: varchar("password_reset_token_hash"),
+  passwordResetExpiresAt: timestamp("password_reset_expires_at"),
   // Only one browser/device session per user — updated on each login.
   activeSessionId: varchar("active_session_id"),
   createdAt: timestamp("created_at").defaultNow(),

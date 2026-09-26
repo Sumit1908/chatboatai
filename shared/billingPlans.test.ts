@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatPriceLabel, toBillingPlan, slugifyPlanName } from "./billingPlans";
+import { formatPriceLabel, toBillingPlan, slugifyPlanName, planCheckoutStatus } from "./billingPlans";
 import type { BillingPlanRow } from "./schema";
 
 describe("formatPriceLabel", () => {
@@ -97,5 +97,30 @@ describe("toBillingPlan", () => {
     const plan = toBillingPlan(row);
     expect(plan.featured).toBe(false);
     expect(plan.active).toBe(true);
+  });
+});
+
+describe("planCheckoutStatus", () => {
+  const plan = { active: true, razorpayEnabled: true, amountInr: 1999 };
+
+  it("can be bought when visible, checkout is on, priced and Razorpay is configured", () => {
+    expect(planCheckoutStatus(plan, true)).toEqual({ canBuy: true, reasons: [] });
+  });
+
+  it("explains each reason a plan can't be bought", () => {
+    expect(planCheckoutStatus({ ...plan, active: false }, true).reasons).toEqual(["Hidden from the website and billing page"]);
+    expect(planCheckoutStatus({ ...plan, razorpayEnabled: false }, true).reasons[0]).toMatch(/checkout is turned off/);
+    expect(planCheckoutStatus({ ...plan, amountInr: 0 }, true).reasons).toEqual(["Price must be at least ₹1"]);
+    expect(planCheckoutStatus(plan, false).reasons).toEqual(["Razorpay keys are not configured on the server"]);
+  });
+
+  it("lists every problem at once, not just the first", () => {
+    const status = planCheckoutStatus({ active: false, razorpayEnabled: false, amountInr: 0 }, false);
+    expect(status.canBuy).toBe(false);
+    expect(status.reasons).toHaveLength(4);
+  });
+
+  it("treats ₹1 as a valid (Razorpay minimum) price", () => {
+    expect(planCheckoutStatus({ ...plan, amountInr: 1 }, true).canBuy).toBe(true);
   });
 });

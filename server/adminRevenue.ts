@@ -44,10 +44,14 @@ export async function getAdminRevenueSnapshot() {
     (u) => u.role !== "super_admin" && isPaidPeriodActive(u) && !u.grantedFreeAccess,
   );
   const freeAccess = allUsers.filter((u) => u.grantedFreeAccess);
-  const trialUsers = allUsers.filter((u) => u.subscriptionStatus === "trial");
   const cancelled = allUsers.filter((u) => u.subscriptionStatus === "cancelled");
+  // Signed up without a plan. "trial" is a legacy status from before free
+  // trials were removed; those accounts have no access and count here.
   const inactive = allUsers.filter(
-    (u) => u.subscriptionStatus === "inactive" && !u.grantedFreeAccess && !u.hasPaid,
+    (u) =>
+      (u.subscriptionStatus === "inactive" || u.subscriptionStatus === "trial") &&
+      !u.grantedFreeAccess &&
+      !u.hasPaid,
   );
   const expiredPaid = allUsers.filter(
     (u) =>
@@ -100,7 +104,7 @@ export async function getAdminRevenueSnapshot() {
   });
 
   const totalUsers = allUsers.filter((u) => u.role !== "super_admin").length;
-  const trialToPaidPct =
+  const signupToPaidPct =
     totalUsers > 0 ? Math.round((paidActive.length / totalUsers) * 100) : 0;
   const arpu = paidActive.length > 0 ? Math.round(mrrInr / paidActive.length) : 0;
   const churnDenom = paidActive.length + cancelled.length;
@@ -158,13 +162,12 @@ export async function getAdminRevenueSnapshot() {
       revenueThisWeek,
       arpu,
       activePaid: paidActive.length,
-      trialUsers: trialUsers.length,
       freeAccess: freeAccess.length,
       cancelled: cancelled.length,
       inactive: inactive.length,
       expired: expiredPaid.length,
       totalUsers,
-      trialToPaidPct,
+      signupToPaidPct,
       churnPct,
       upgrades: upgrades.length,
       renewals: renewals.length,

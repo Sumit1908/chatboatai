@@ -8,7 +8,7 @@ export const SITE_PUBLISHER = "ChatBoatAI";
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 export const DEFAULT_KEYWORDS =
-  "WhatsApp Business API, WhatsApp marketing, WhatsApp broadcast, WhatsApp campaigns, Meta Cloud API, WhatsApp inbox, message templates, ChatBoatAI";
+  "CRM, lead management, sales pipeline, follow-ups, WhatsApp CRM, WhatsApp Business API, business integrations, ChatBoatAI";
 
 export type SeoRobots = "index, follow" | "noindex, nofollow" | "noindex, follow";
 
@@ -59,7 +59,7 @@ export function softwareApplicationJsonLd(): Record<string, unknown> {
     operatingSystem: "Web",
     url: SITE_URL,
     description:
-      "WhatsApp Business API platform for broadcast campaigns, templates, shared inbox, and real-time delivery analytics.",
+      "All-in-one CRM for leads, contacts, sales pipeline, follow-ups and automation, with WhatsApp and other business integrations in one dashboard.",
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/pricing`,
@@ -127,76 +127,92 @@ function crumbs(...trail: Array<{ name: string; path: string }>) {
 export const CONTENT_SEO: Record<string, SeoPageConfig> = {
   "/": {
     path: "/",
-    title: "WhatsApp Business API Platform for Teams | ChatBoatAI",
+    title: "All-in-One CRM & Business Integrations | ChatBoatAI",
     description:
-      "Broadcast WhatsApp campaigns with Meta-approved templates, shared team inbox and live delivery analytics. Start free with ChatBoatAI.",
+      "Manage leads, contacts, sales pipeline, follow-ups and automation in one CRM dashboard — with WhatsApp and your business tools connected. Simple monthly plans.",
     keywords: DEFAULT_KEYWORDS,
     jsonLd: [softwareApplicationJsonLd()],
   },
   "/features": {
     path: "/features",
-    title: "WhatsApp Marketing Features & Inbox | ChatBoatAI",
+    title: "CRM Features: Leads, Pipeline & Follow-ups | ChatBoatAI",
     description:
-      "Explore ChatBoatAI features: broadcast campaigns, Meta template manager, shared inbox, contact lists, tags and real-time WhatsApp delivery analytics for growing teams.",
+      "ChatBoatAI CRM features: leads, contacts, deals, a visual sales pipeline, follow-ups and tasks on one dashboard, with the WhatsApp integration built in. Automation and AI coming soon.",
     keywords:
-      "WhatsApp marketing features, WhatsApp broadcast, WhatsApp shared inbox, Meta template manager, WhatsApp analytics, ChatBoatAI",
+      "CRM features, lead management, sales pipeline, follow-up tracking, deal tracking, WhatsApp CRM, ChatBoatAI",
     jsonLd: [
       crumbs({ name: "Features", path: "/features" }),
       softwareApplicationJsonLd(),
     ],
   },
+  "/crm": {
+    path: "/crm",
+    title: "CRM for Growing Businesses | Leads, Deals & Pipeline | ChatBoatAI",
+    description:
+      "ChatBoatAI CRM: leads, contacts, deals, a visual sales pipeline, follow-ups and tasks in one dashboard, with WhatsApp built in. See what's live today and what's coming next.",
+    keywords: "CRM software India, sales CRM, lead management CRM, sales pipeline CRM, WhatsApp CRM, ChatBoatAI",
+    jsonLd: [crumbs({ name: "CRM", path: "/crm" }), softwareApplicationJsonLd()],
+  },
+  "/integrations": {
+    path: "/integrations",
+    title: "CRM Integrations: WhatsApp & More | ChatBoatAI",
+    description:
+      "Connect your business tools to one CRM. The official WhatsApp Business integration is live; Gmail, Facebook Leads, Google, Google Calendar, Slack, Zapier and HubSpot are coming soon.",
+    keywords: "CRM integrations, WhatsApp CRM integration, WhatsApp Business API, CRM Gmail integration, ChatBoatAI integrations",
+    jsonLd: [crumbs({ name: "Integrations", path: "/integrations" }), softwareApplicationJsonLd()],
+  },
   "/trust": {
     path: "/trust",
-    title: "Trusted Official Meta WhatsApp API | ChatBoatAI",
+    title: "Trust & Data Security | ChatBoatAI CRM",
     description:
-      "ChatBoatAI runs on the official Meta WhatsApp Business Platform. Transparent delivery, secure workspaces and reliable Cloud API messaging your customers can trust.",
+      "How ChatBoatAI protects your CRM data: workspace isolation on every request, hashed passwords, HTTPS, Razorpay payments and an official Meta WhatsApp integration.",
     keywords:
-      "official WhatsApp Business API, Meta Cloud API, WhatsApp trust, secure WhatsApp messaging, ChatBoatAI",
+      "CRM data security, workspace isolation, secure CRM, official WhatsApp API, ChatBoatAI trust",
     jsonLd: [crumbs({ name: "Trust", path: "/trust" })],
   },
   "/how-it-works": {
     path: "/how-it-works",
-    title: "How WhatsApp Campaigns Work on ChatBoatAI",
+    title: "How ChatBoatAI CRM Works | From Lead to Closed Deal",
     description:
-      "Connect Meta API, create approved templates, then launch and track WhatsApp broadcast campaigns in real time with ChatBoatAI — from signup to first send in days.",
+      "Set up your CRM in an afternoon: add or import leads, build your sales pipeline, schedule follow-ups, then connect WhatsApp to message customers from the same workspace.",
     keywords:
-      "how WhatsApp campaigns work, WhatsApp broadcast steps, Meta API setup, WhatsApp templates, ChatBoatAI",
+      "how CRM works, CRM setup, sales pipeline setup, lead follow-up, WhatsApp CRM integration, ChatBoatAI",
     jsonLd: [crumbs({ name: "How it works", path: "/how-it-works" })],
   },
   "/setup-guide": {
     path: "/setup-guide",
-    title: "WhatsApp Business API Setup Guide | ChatBoatAI",
+    title: "ChatBoatAI Setup Guide | CRM & WhatsApp Integration",
     description:
-      "Step-by-step guide to connect Meta Business, WhatsApp Cloud API, message templates and your first ChatBoatAI campaign so your team can go live in days, not weeks.",
+      "Step-by-step guide to set up your ChatBoatAI CRM — leads, deals and follow-ups — and connect the WhatsApp Business integration through Meta's official platform.",
     keywords:
-      "WhatsApp Business API setup, Meta embedded signup, WABA setup guide, WhatsApp Cloud API, ChatBoatAI",
+      "CRM setup guide, WhatsApp Business API setup, Meta embedded signup, WhatsApp integration, ChatBoatAI",
     jsonLd: [crumbs({ name: "Setup guide", path: "/setup-guide" })],
   },
   "/use-cases": {
     path: "/use-cases",
-    title: "WhatsApp Business Use Cases for Teams | ChatBoatAI",
+    title: "CRM Use Cases for Real Estate, Education & More | ChatBoatAI",
     description:
-      "See how sales, support and marketing teams use ChatBoatAI for WhatsApp broadcasts, follow-ups, order notifications and shared inbox replies that convert conversations.",
+      "How real estate, education, D2C and agency teams use ChatBoatAI to track leads, run a sales pipeline, schedule follow-ups and message customers on WhatsApp.",
     keywords:
-      "WhatsApp use cases, WhatsApp for sales, WhatsApp customer support, WhatsApp notifications, ChatBoatAI",
+      "CRM for real estate, CRM for education, CRM for agencies, sales CRM India, WhatsApp CRM, ChatBoatAI",
     jsonLd: [crumbs({ name: "Use cases", path: "/use-cases" })],
   },
   "/proof": {
     path: "/proof",
-    title: "WhatsApp Delivery Results & Campaign Proof",
+    title: "Our Commitments | ChatBoatAI",
     description:
-      "Real delivery transparency on WhatsApp: sent, delivered, read and failed tracked live per campaign with ChatBoatAI analytics so you always know what customers received.",
+      "The commitments ChatBoatAI makes to customers: no over-promising, clear monthly pricing, and human support when you need it.",
     keywords:
-      "WhatsApp delivery reports, WhatsApp read receipts, campaign analytics, message tracking, ChatBoatAI",
+      "ChatBoatAI reviews, ChatBoatAI customers, CRM testimonials, WhatsApp CRM customers",
     jsonLd: [crumbs({ name: "Proof", path: "/proof" })],
   },
   "/pricing": {
     path: "/pricing",
-    title: "WhatsApp API Pricing Plans & Free Trial",
+    title: "CRM Pricing Plans | ChatBoatAI",
     description:
-      "Simple ChatBoatAI plans for WhatsApp Business API broadcasting. Free trial included — Meta conversation fees billed at Meta rates with no platform markup on messages.",
+      "Simple ChatBoatAI plans that include the CRM — leads, deals, pipeline, follow-ups and tasks — plus the WhatsApp integration. Pay securely with Razorpay and activate instantly.",
     keywords:
-      "WhatsApp API pricing, WhatsApp Business API cost, ChatBoatAI plans, WhatsApp free trial, Meta conversation fees",
+      "CRM pricing India, CRM subscription plans, WhatsApp CRM pricing, ChatBoatAI plans",
     jsonLd: [
       crumbs({ name: "Pricing", path: "/pricing" }),
       softwareApplicationJsonLd(),
@@ -204,43 +220,43 @@ export const CONTENT_SEO: Record<string, SeoPageConfig> = {
   },
   "/faq": {
     path: "/faq",
-    title: "WhatsApp Business API FAQ Answered | ChatBoatAI",
+    title: "ChatBoatAI FAQ | CRM, WhatsApp Integration & Billing",
     description:
-      "Answers about official WhatsApp Business API, Meta conversation charges, template approval times, shared team inbox and ChatBoatAI free trials — clear and up to date.",
+      "What ChatBoatAI does today and what's coming soon, how the WhatsApp integration works, Meta conversation charges and billing — answered.",
     keywords:
-      "WhatsApp Business API FAQ, Meta conversation charges, WhatsApp template approval, ChatBoatAI help",
+      "ChatBoatAI FAQ, CRM questions, WhatsApp integration FAQ, Meta conversation charges, CRM pricing",
     jsonLd: [crumbs({ name: "FAQ", path: "/faq" }), faqPageJsonLd()],
   },
   "/contact": {
     path: "/contact",
-    title: "Contact ChatBoatAI Support | WhatsApp API Help",
+    title: "Contact ChatBoatAI | Sales & Support",
     description:
-      "Contact ChatBoatAI for WhatsApp Business API setup, billing and support. Call +91 9336791807 or email thecleverwork@gmail.com — we reply within 24 hours.",
+      "Contact ChatBoatAI for CRM setup, WhatsApp integration, billing and support. Call +91 9336791807 or email thecleverwork@gmail.com.",
     keywords:
-      "contact ChatBoatAI, WhatsApp API support, ChatBoatAI help desk, billing support, ChatBoatAI phone",
+      "contact ChatBoatAI, CRM support, WhatsApp integration support, billing support",
     jsonLd: [crumbs({ name: "Contact", path: "/contact" }), contactPageJsonLd()],
   },
   "/privacy": {
     path: "/privacy",
-    title: "Privacy Policy | ChatBoatAI WhatsApp Platform",
+    title: "Privacy Policy | ChatBoatAI",
     description:
-      "How ChatBoatAI collects, uses and protects personal data on our WhatsApp Business API broadcasting platform. Read our privacy practices before you create an account.",
+      "How ChatBoatAI collects, uses and protects personal data across our CRM and WhatsApp integration. Read our privacy practices before you create an account.",
     keywords: "ChatBoatAI privacy policy, WhatsApp data privacy, personal data protection",
     jsonLd: [crumbs({ name: "Privacy Policy", path: "/privacy" })],
   },
   "/terms": {
     path: "/terms",
-    title: "Terms of Service | ChatBoatAI WhatsApp Platform",
+    title: "Terms of Service | ChatBoatAI",
     description:
-      "Terms governing use of ChatBoatAI’s WhatsApp Business API platform, including accounts, acceptable use, billing, service limits and your responsibilities as a customer.",
+      "Terms governing use of ChatBoatAI's CRM and integrations, including accounts, acceptable use, billing, service limits and your responsibilities as a customer.",
     keywords: "ChatBoatAI terms of service, WhatsApp platform terms, acceptable use policy",
     jsonLd: [crumbs({ name: "Terms of Service", path: "/terms" })],
   },
   "/refund": {
     path: "/refund",
-    title: "Refund Policy for ChatBoatAI Billing Plans",
+    title: "Refund Policy | ChatBoatAI",
     description:
-      "ChatBoatAI refund policy for subscription billing on our WhatsApp Business API platform. Learn when refunds apply, what is excluded, and how to request billing help.",
+      "ChatBoatAI refund policy for subscription billing. Learn when refunds apply, what is excluded, and how to request billing help.",
     keywords: "ChatBoatAI refund policy, WhatsApp API billing refund, subscription refund",
     jsonLd: [crumbs({ name: "Refund Policy", path: "/refund" })],
   },
@@ -248,7 +264,7 @@ export const CONTENT_SEO: Record<string, SeoPageConfig> = {
     path: "/delete-data",
     title: "User Data Deletion Requests | ChatBoatAI Privacy",
     description:
-      "Request deletion of your ChatBoatAI account and associated WhatsApp workspace data. Steps for GDPR-style user data removal requests, timelines and support contacts.",
+      "Request deletion of your ChatBoatAI account and associated CRM and WhatsApp data. Steps for data removal requests, timelines and support contacts.",
     keywords: "data deletion request, GDPR delete account, ChatBoatAI delete data, WhatsApp data removal",
     jsonLd: [crumbs({ name: "Data Deletion", path: "/delete-data" })],
   },
@@ -259,7 +275,7 @@ export const AUTH_SEO: Record<string, SeoPageConfig> = {
   "/login": {
     path: "/login",
     title: "Log In | ChatBoatAI",
-    description: "Sign in to your ChatBoatAI WhatsApp Business API workspace.",
+    description: "Sign in to your ChatBoatAI CRM workspace.",
     robots: "noindex, nofollow",
   },
   "/admin-login": {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,13 +20,13 @@ import {
   Crown,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrialCountdown } from "@/components/trial-countdown";
-import { getTrialRemainingMs } from "@/lib/trial-countdown";
 import { cn } from "@/lib/utils";
 import { calculateProRataUpgrade } from "@shared/upgradePricing";
+import { loadRazorpayScript, useRazorpayCheckout } from "@/hooks/use-razorpay-checkout";
 
 interface BillingPlan {
   id: string;
+  slug: string;
   name: string;
   tagline: string;
   priceLabel: string;
@@ -46,21 +46,12 @@ interface SubscriptionStatus {
   subscriptionStatus: string;
   hasPaid: boolean;
   grantedFreeAccess: boolean;
-  trialEndsAt: string | null;
   isActive: boolean;
-  trialDays?: number;
-  isTrial?: boolean;
+  /** "team": covered by the paid plan of the owner of a shared WhatsApp number. */
+  accessSource?: "own" | "team" | "none";
   billingPlanId?: string | null;
   subscriptionEndsAt?: string | null;
   plan?: { id: string; name: string; priceLabel: string; slug: string; amountInr?: number } | null;
-  trialUsage?: {
-    contactCount: number;
-    contactLimit: number;
-    contactsRemaining: number;
-    messagesSentTotal: number;
-    messageTotalLimit: number;
-    messagesRemainingTotal: number;
-  } | null;
   planUsage?: {
     mode: string;
     plan: { id: string; name: string; priceLabel: string } | null;
@@ -73,32 +64,23 @@ interface SubscriptionStatus {
   } | null;
 }
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 function formatInr(amountInr: number): string {
   return `₹${amountInr.toLocaleString("en-IN")}`;
 }
 
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
-
 export default function Billing() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isSubscribing, setIsSubscribing] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  // ?checkout=1 (set after sign-in from a pricing card's "Pay Now") opens
+  // Razorpay for the ?plan= plan as soon as the page is ready, and after a
+  // successful payment continues to the dashboard.
+  const [autoCheckout] = useState(() => new URLSearchParams(window.location.search).get("checkout") === "1");
+  const autoCheckoutStarted = useRef(false);
+  const checkout = useRazorpayCheckout({
+    onSuccess: () => setSelectedPlanId(null),
+    successRedirect: autoCheckout ? "/dashboard" : undefined,
+  });
+  const isSubscribing = checkout.isProcessing;
 
   const { data: status, isLoading: statusLoading } = useQuery<SubscriptionStatus>({
     queryKey: ["/api/subscription/status"],
@@ -139,8 +121,12 @@ export default function Billing() {
 
   useEffect(() => {
     if (!selectedPlanId && eligiblePlans.length > 0) {
+      // ?plan=<slug> comes from a pricing-page "Get Started" button: preselect
+      // that plan (if the user can buy it) so checkout continues where they left off.
+      const requested = new URLSearchParams(window.location.search).get("plan");
+      const fromLink = requested ? eligiblePlans.find((p) => p.slug === requested) : undefined;
       const featured = eligiblePlans.find((p) => p.featured);
-      setSelectedPlanId(featured?.id ?? eligiblePlans[0].id);
+      setSelectedPlanId(fromLink?.id ?? featured?.id ?? eligiblePlans[0].id);
     }
   }, [eligiblePlans, selectedPlanId]);
 
@@ -158,167 +144,35 @@ export default function Billing() {
     !!selectedPlan &&
     selectedPlan.razorpayEnabled &&
     (!isPaidActive || selectedPlan.amountInr > currentAmount);
-  const trialActive =
-    status?.isTrial && status.trialEndsAt && getTrialRemainingMs(status.trialEndsAt) > 0;
 
-  const refreshStatus = () => {
-    queryClient.invalidateQueries({
-      queryKey: ["/api/subscription/payments"],
-    });
 
-    setTimeout(() => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/subscription/status"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/subscription/payments"],
-      });
-    }, 1500);
-  };
-
-  const handleSubscribe = async () => {
+  const handleSubscribe = () => {
     if (!canCheckoutSelectedPlan || !selectedPlan?.razorpayEnabled) return;
-
-    setIsSubscribing(true);
-    try {
-      const ready = await loadRazorpayScript();
-      if (!ready) {
-        toast({
-          title: "Error",
-          description: "Could not load payment gateway. Please try again.",
-          variant: "destructive",
-        });
-        setIsSubscribing(false);
-        return;
-      }
-
-      // Difference upgrade only when already on a paid plan; otherwise new subscribe.
-      if (isPaidActive && currentPlan) {
-        const res = await apiRequest("POST", "/api/subscription/upgrade", {
-          planId: selectedPlan.id,
-        });
-        const data = await res.json();
-
-        const razorpay = new window.Razorpay({
-          key: data.keyId,
-          amount: data.amount,
-          currency: data.currency || "INR",
-          order_id: data.orderId,
-          name: "ChatBoatAI",
-          description: `Upgrade to ${data.toPlan?.name ?? selectedPlan.name} — pay ${formatInr(data.differenceInr)}`,
-          theme: { color: "#14205a" },
-          handler: async (response: {
-            razorpay_order_id: string;
-            razorpay_payment_id: string;
-            razorpay_signature: string;
-          }) => {
-            try {
-              await apiRequest("POST", "/api/subscription/upgrade/confirm", {
-                planId: selectedPlan.id,
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-              });
-              toast({
-                title: "Plan upgraded",
-                description: `You're now on ${data.toPlan?.name ?? selectedPlan.name}.`,
-              });
-              setSelectedPlanId(null);
-              refreshStatus();
-            } catch (error: any) {
-              toast({
-                title: "Upgrade confirmation failed",
-                description:
-                  error.message?.replace(/^\d+:\s*/, "") ||
-                  "Payment received — contact support if your plan didn't update.",
-                variant: "destructive",
-              });
-            } finally {
-              setIsSubscribing(false);
-            }
-          },
-          modal: {
-            ondismiss: () => setIsSubscribing(false),
-          },
-        });
-
-        razorpay.on("payment.failed", () => {
-          toast({
-            title: "Payment failed",
-            description: "Your upgrade payment could not be processed. Please try again.",
-            variant: "destructive",
-          });
-          setIsSubscribing(false);
-        });
-
-        razorpay.open();
-        return;
-      }
-
-      const res = await apiRequest("POST", "/api/subscription/create", {
-        planId: selectedPlan.id,
-      });
-      const data = await res.json();
-
-      const razorpay = new window.Razorpay({
-        key: data.keyId,
-        subscription_id: data.subscriptionId,
-        name: "ChatBoatAI",
-        description: `${data.plan?.name ?? selectedPlan.name} — ${selectedPlan.priceLabel}/month`,
-        theme: { color: "#14205a" },
-        handler: async (response: {
-          razorpay_payment_id: string;
-          razorpay_subscription_id: string;
-          razorpay_signature: string;
-        }) => {
-          try {
-            await apiRequest("POST", "/api/subscription/confirm", {
-              planId: selectedPlan.id,
-              paymentId: response.razorpay_payment_id,
-              subscriptionId: response.razorpay_subscription_id,
-              signature: response.razorpay_signature,
-            });
-            toast({
-              title: "Payment successful",
-              description: `You're now on the ${selectedPlan.name} plan.`,
-            });
-            refreshStatus();
-          } catch (error: any) {
-            toast({
-              title: "Payment received",
-              description:
-                error.message?.replace(/^\d+:\s*/, "") ||
-                "Activating your plan — refresh in a few seconds if status hasn't updated.",
-            });
-            refreshStatus();
-          } finally {
-            setIsSubscribing(false);
-          }
-        },
-        modal: {
-          ondismiss: () => setIsSubscribing(false),
-        },
-      });
-
-      razorpay.on("payment.failed", () => {
-        toast({
-          title: "Payment failed",
-          description: "Your payment could not be processed. Please try again.",
-          variant: "destructive",
-        });
-        setIsSubscribing(false);
-      });
-
-      razorpay.open();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message?.replace(/^\d+:\s*/, "") || "Failed to start checkout",
-        variant: "destructive",
-      });
-      setIsSubscribing(false);
-    }
+    // Difference upgrade only when already on a paid plan; otherwise new subscribe.
+    void checkout.start(selectedPlan, { upgrade: isPaidActive && !!currentPlan });
   };
+
+  useEffect(() => {
+    if (!autoCheckout || autoCheckoutStarted.current || statusLoading || plansLoading || !status) return;
+    autoCheckoutStarted.current = true;
+    // One-shot: a refresh must not reopen the payment window.
+    const params = new URLSearchParams(window.location.search);
+    params.delete("checkout");
+    window.history.replaceState(null, "", `${window.location.pathname}${params.toString() ? `?${params}` : ""}`);
+    const requested = params.get("plan");
+    const plan = requested ? eligiblePlans.find((p) => p.slug === requested) : undefined;
+    if (!plan) {
+      toast({
+        title: "Plan not available for checkout",
+        description: currentPlan
+          ? `You're already on ${currentPlan.name}. Choose a higher plan below to upgrade.`
+          : "Choose a plan below to continue.",
+      });
+      return;
+    }
+    setSelectedPlanId(plan.id);
+    void checkout.start(plan, { upgrade: isPaidActive && !!currentPlan });
+  }, [autoCheckout, statusLoading, plansLoading, status, eligiblePlans, currentPlan, isPaidActive, checkout, toast]);
 
   const isLoading = statusLoading || plansLoading;
 
@@ -408,32 +262,22 @@ export default function Billing() {
               </p>
             </div>
           )}
-          {status?.subscriptionStatus === "trial" && !status.hasPaid && (
-            <div className="flex flex-col gap-2 text-sm rounded-xl bg-amber-50 border border-amber-200/80 px-4 py-3 text-amber-900">
-              <div className="flex flex-wrap items-center gap-2">
-                <Clock className="h-4 w-4 shrink-0" />
-                {trialActive ? (
-                  <TrialCountdown
-                    endsAt={status.trialEndsAt}
-                    prefix="Free trial ends in"
-                    className="font-medium"
-                  />
-                ) : (
-                  <span>Your free trial has ended. Choose a plan below to continue.</span>
-                )}
-              </div>
-              {status.isTrial && status.trialUsage && trialActive && (
-                <ul className="ml-6 space-y-1 text-xs text-amber-800">
-                  <li>
-                    Contacts (all numbers): {status.trialUsage.contactCount}/{status.trialUsage.contactLimit} used
-                    ({status.trialUsage.contactsRemaining} remaining)
-                  </li>
-                  <li>
-                    Messages (total for trial): {status.trialUsage.messagesSentTotal}/{status.trialUsage.messageTotalLimit} sent
-                    ({status.trialUsage.messagesRemainingTotal} remaining)
-                  </li>
-                </ul>
-              )}
+          {status?.accessSource === "team" && (
+            <p className="text-sm text-muted-foreground" data-testid="text-team-access">
+              You&apos;re using the plan of the team that added you to its WhatsApp number, so you don&apos;t need a
+              plan of your own.
+            </p>
+          )}
+          {status && !status.isActive && (
+            <div
+              className="flex items-start gap-2 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+              data-testid="text-no-active-plan"
+            >
+              <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Your account doesn&apos;t have an active plan. Choose a plan below and pay securely with Razorpay to
+                start using ChatBoatAI.
+              </span>
             </div>
           )}
         </CardContent>
@@ -448,7 +292,7 @@ export default function Billing() {
             <p className="text-sm text-muted-foreground mt-1">
               {isPaidActive
                 ? "All plans are visible. Your current plan is marked, and lower-priced plans are disabled."
-                : "All prices exclusive of GST · Meta conversation charges billed at cost"}
+                : "WhatsApp conversation charges are billed separately by Meta."}
             </p>
           </div>
 
@@ -625,12 +469,12 @@ function PaymentHistorySection() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Failed to download invoice");
+        throw new Error(body.error || "Failed to download receipt");
       }
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="([^"]+)"/);
-      const filename = match?.[1] || `chatboatai-invoice-${paymentId}.html`;
+      const filename = match?.[1] || `chatboatai-receipt-${paymentId}.html`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -640,13 +484,13 @@ function PaymentHistorySection() {
       a.remove();
       URL.revokeObjectURL(url);
       toast({
-        title: "Invoice downloaded",
+        title: "Receipt downloaded",
         description: "Open the file and use Print → Save as PDF if you need a PDF copy.",
       });
     } catch (error: any) {
       toast({
         title: "Download failed",
-        description: error.message || "Could not download invoice",
+        description: error.message || "Could not download receipt",
         variant: "destructive",
       });
     } finally {
@@ -659,7 +503,7 @@ function PaymentHistorySection() {
       <CardHeader>
         <CardTitle className="text-[#075E54]">Payment history</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Subscriptions, upgrades, and renewals — download invoices for successful payments
+          Subscriptions, upgrades, and renewals — download receipts for successful payments
         </p>
       </CardHeader>
       <CardContent>
@@ -716,7 +560,7 @@ function PaymentHistorySection() {
                       data-testid={`button-download-invoice-${payment.id}`}
                     >
                       <Download className="h-3.5 w-3.5" />
-                      {downloadingId === payment.id ? "Downloading…" : "Invoice"}
+                      {downloadingId === payment.id ? "Downloading…" : "Receipt"}
                     </Button>
                   )}
                 </div>

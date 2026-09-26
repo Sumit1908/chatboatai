@@ -50,6 +50,31 @@ export function toBillingPlan(row: BillingPlanRow): BillingPlan {
   };
 }
 
+export type PlanCheckoutStatus = {
+  /** True when a customer can pay for this plan through Razorpay right now. */
+  canBuy: boolean;
+  /** Plain-language reasons it can't be bought (empty when canBuy). */
+  reasons: string[];
+};
+
+/**
+ * Whether customers can buy a plan, using the same rules checkout applies
+ * (POST /api/subscription/create): the plan must be visible, have Razorpay
+ * checkout on, cost at least ₹1 (Razorpay's minimum), and the server must
+ * have Razorpay keys configured.
+ */
+export function planCheckoutStatus(
+  plan: Pick<BillingPlan, "active" | "razorpayEnabled" | "amountInr">,
+  razorpayConfigured: boolean,
+): PlanCheckoutStatus {
+  const reasons: string[] = [];
+  if (!plan.active) reasons.push("Hidden from the website and billing page");
+  if (!plan.razorpayEnabled) reasons.push("Razorpay checkout is turned off for this plan (customers see “Contact sales”)");
+  if (!Number.isFinite(plan.amountInr) || plan.amountInr < 1) reasons.push("Price must be at least ₹1");
+  if (!razorpayConfigured) reasons.push("Razorpay keys are not configured on the server");
+  return { canBuy: reasons.length === 0, reasons };
+}
+
 export function slugifyPlanName(name: string): string {
   return name
     .toLowerCase()
@@ -59,7 +84,13 @@ export function slugifyPlanName(name: string): string {
     .slice(0, 64) || "plan";
 }
 
-/** Seed catalog used when the billing_plans table is empty. */
+/**
+ * Seed catalog, inserted ONLY when the billing_plans table is empty (new
+ * database). Existing plans are never overwritten - live prices and features
+ * are managed in Admin -> Pricing Plans. Features listed here must be things
+ * the product actually does. Support delivered by people (not software) is
+ * written "Service: ..." and shown under "Support from our team" on pricing.
+ */
 export const DEFAULT_BILLING_PLAN_SEEDS: Omit<
   InsertableSeed,
   "id" | "createdAt" | "updatedAt" | "razorpayPlanId"
@@ -68,75 +99,77 @@ export const DEFAULT_BILLING_PLAN_SEEDS: Omit<
     slug: "starter",
     name: "Starter",
     tagline: "For small teams getting started",
-    amountInr: 1999,
+    amountInr: 12999,
     period: "month",
     featured: false,
     active: true,
     razorpayEnabled: true,
     features: [
+      "Up to 10 users",
       "1 WhatsApp number",
       "2,500 contacts",
       "10 message templates",
       "Broadcast campaigns",
       "Basic analytics",
-      "Email support",
+      "Service: email support",
     ],
     sortOrder: 10,
     maxContacts: 2500,
     maxMessagesPerDay: null,
     maxWhatsappNumbers: 1,
     maxTemplates: 10,
-    maxTeamSeats: 1,
+    maxTeamSeats: 10,
   },
   {
     slug: "growth",
     name: "Growth",
     tagline: "For growing sales & marketing teams",
-    amountInr: 4999,
+    amountInr: 19999,
     period: "month",
     featured: true,
     active: true,
     razorpayEnabled: true,
     features: [
+      "Up to 10 users",
       "1 WhatsApp number",
       "25,000 contacts",
       "Unlimited templates",
-      "Shared team inbox (5 seats)",
-      "Campaign scheduling & segments",
+      "Shared team inbox",
+      "Campaign scheduling",
       "Real-time delivery analytics",
-      "Priority WhatsApp support",
+      "Service: priority support on WhatsApp",
     ],
     sortOrder: 20,
     maxContacts: 25000,
     maxMessagesPerDay: null,
     maxWhatsappNumbers: 1,
     maxTemplates: null,
-    maxTeamSeats: 5,
+    maxTeamSeats: 10,
   },
   {
     slug: "scale",
     name: "Scale",
     tagline: "For agencies & high-volume senders",
-    amountInr: 9999,
+    amountInr: 29999,
     period: "month",
     featured: false,
     active: true,
     razorpayEnabled: true,
     features: [
+      "Up to 10 users",
       "Multiple WhatsApp numbers",
       "Unlimited contacts",
       "Unlimited templates & campaigns",
-      "Team inbox (unlimited seats)",
-      "Multi-client workspaces",
-      "API access & webhooks",
-      "Dedicated account manager",
+      "Team inbox",
+      "Separate contacts, templates & inbox per number",
+      "Service: dedicated account manager",
     ],
     sortOrder: 30,
     maxContacts: null,
     maxMessagesPerDay: null,
     maxWhatsappNumbers: null,
     maxTemplates: null,
-    maxTeamSeats: null,
+    maxTeamSeats: 10,
   },
 ];
 

@@ -21,10 +21,14 @@ export interface IAuthStorage {
   getAuditLog(limit?: number): Promise<AdminAuditLogEntry[]>;
 }
 
-// Never let the password hash leave this module - every method below strips it
-// before returning, since callers only ever need it for cache-fresh auth checks.
+// Never let secret-bearing fields leave this module - every method below
+// strips them before returning, since callers (including /api/auth/user and
+// /api/admin/users, which forward this object straight to the client) only
+// ever need it for cache-fresh auth checks. passwordResetTokenHash is a
+// SHA-256 hash rather than the raw reset token (see server/passwordReset.ts),
+// but is still scrubbed out here on the same reasoning as passwordHash.
 function hidePassword(user: User): User {
-  return { ...user, passwordHash: null };
+  return { ...user, passwordHash: null, passwordResetTokenHash: null };
 }
 
 class AuthStorage implements IAuthStorage {

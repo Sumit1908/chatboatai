@@ -2,7 +2,10 @@ import type { TemplateComponent } from "@shared/schema";
 import { getUploadedMediaBuffer } from "./uploadStorage";
 
 const META_API_VERSION = "v21.0";
-const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
+// Test-only override (a local mock of the Graph API for end-to-end tests).
+// Unset in production, where it is always Meta.
+const META_GRAPH_ORIGIN = (process.env.META_GRAPH_API_ORIGIN || "https://graph.facebook.com").replace(/\/$/, "");
+const META_API_BASE = `${META_GRAPH_ORIGIN}/${META_API_VERSION}`;
 
 // Template creation (POST .../message_templates) rejects with a generic
 // "does not exist, cannot be loaded due to missing permissions, or does not
@@ -10,7 +13,7 @@ const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
 // while the identical request succeeds on v19.0 - confirmed by testing both
 // directly against Meta. Every other endpoint (messaging, media, template
 // listing/fetching) is unaffected and stays on v21.0.
-const META_TEMPLATE_CREATE_API_BASE = "https://graph.facebook.com/v19.0";
+const META_TEMPLATE_CREATE_API_BASE = `${META_GRAPH_ORIGIN}/v19.0`;
 
 export interface MetaApiError {
   message: string;

@@ -24,26 +24,26 @@
   --sidebar: 0 0% 100%;
   --sidebar-foreground: 174 86% 18%;
   --sidebar-border: 158 20% 89%;
-  --sidebar-primary: 145 70% 49%;
+  --sidebar-primary: 174 80% 27%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 150 54% 95%;
   --sidebar-accent-foreground: 174 86% 18%;
-  --sidebar-ring: 145 70% 49%;
+  --sidebar-ring: 174 80% 27%;
   --popover: 0 0% 100%;
   --popover-foreground: 174 86% 18%;
   --popover-border: 158 20% 89%;
-  --primary: 145 70% 49%;
+  --primary: 174 80% 27%;
   --primary-foreground: 0 0% 100%;
   --secondary: 150 54% 95%;
   --secondary-foreground: 174 86% 18%;
   --muted: 156 24% 95%;
   --muted-foreground: 171 20% 39%;
-  --accent: 100 69% 90%;
+  --accent: 170 60% 92%;
   --accent-foreground: 174 86% 18%;
   --destructive: 354 71% 61%;
   --destructive-foreground: 0 0% 100%;
   --input: 158 20% 89%;
-  --ring: 145 70% 49%;
+  --ring: 174 80% 27%;
   --chart-1: 174 86% 18%;
   --chart-2: 145 70% 49%;
   --chart-3: 173 76% 31%;
@@ -316,4 +316,16 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+}
+
+/* Marketing hero (client/src/components/crm): entrance animation.
+   Plain CSS so it needs no JS to finish, and switched off for visitors who
+   prefer reduced motion. */
+@keyframes crm-rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.crm-rise { animation: crm-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both; }
+@media (prefers-reduced-motion: reduce) {
+  .crm-rise { animation: none; }
 }

@@ -26,7 +26,16 @@ import {
   CreditCard,
   Smartphone,
   LogOut,
+  UserPlus,
+  Handshake,
+  KanbanSquare,
+  CalendarClock,
+  ListChecks,
+  Workflow,
+  Plug,
+  PieChart,
 } from "lucide-react";
+import { BrandLogo } from "@/components/crm/brand";
 
 import {
   Sidebar,
@@ -80,24 +89,28 @@ interface AppSidebarProps {
   apiStatus?: "connected" | "disconnected" | "error";
 }
 
-const navigationItems = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Inbox",
-    url: "/inbox",
-    icon: Inbox,
-    badge: "unreadMessages",
-  },
-  {
-    title: "Templates",
-    url: "/templates",
-    icon: FileText,
-    badge: "pendingTemplates",
-  },
+type NavItem = {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: "unreadMessages" | "pendingTemplates" | "activeCampaigns";
+  /** Module not built yet - shown with a "Soon" tag, page explains what's planned. */
+  soon?: boolean;
+};
+
+// CRM - the core product. Contacts (collapsible) is rendered after Leads.
+const crmTopItems: NavItem[] = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Leads", url: "/leads", icon: UserPlus },
+];
+const crmItems: NavItem[] = [
+  { title: "Deals", url: "/deals", icon: Handshake },
+  { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
+  { title: "Follow-ups", url: "/follow-ups", icon: CalendarClock },
+  { title: "Tasks", url: "/tasks", icon: ListChecks },
+  { title: "Automation", url: "/automation", icon: Workflow, soon: true },
+  { title: "Integrations", url: "/connected-apps", icon: Plug },
+  { title: "Reports", url: "/reports", icon: PieChart, soon: true },
 ];
 
 const contactsSubItems = [
@@ -107,22 +120,20 @@ const contactsSubItems = [
   { title: "Import / Export", url: "/contacts/import", icon: Upload },
 ];
 
+// WhatsApp - one integration/channel inside the CRM.
+const whatsappItems: NavItem[] = [
+  { title: "Overview", url: "/whatsapp", icon: LayoutDashboard },
+  { title: "Inbox", url: "/inbox", icon: Inbox, badge: "unreadMessages" },
+  { title: "Templates", url: "/templates", icon: FileText, badge: "pendingTemplates" },
+];
+const whatsappBottomItems: NavItem[] = [
+  { title: "Messages", url: "/messages", icon: MessageSquare },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+];
+
 const notificationsSubItems = [
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Add New", url: "/notifications/new", icon: Plus },
-];
-
-const bottomNavItems = [
-  {
-    title: "Messages",
-    url: "/messages",
-    icon: MessageSquare,
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart3,
-  },
 ];
 
 const settingsItems = [
@@ -205,14 +216,15 @@ export function AppSidebar({
   };
 
   // Fetch Facebook App ID and load SDK only for authenticated workspace (embedded signup).
-  const { data: fbConfig } = useQuery<{ appId: string }>({
+  const { data: fbConfig } = useQuery<{ appId: string | null }>({
     queryKey: ["/api/auth/facebook/config"],
   });
 
   useEffect(() => {
-    if (!fbConfig?.appId) return;
+    const appId = fbConfig?.appId;
+    if (!appId) return;
     void import("@/lib/facebook-sdk").then(({ loadFacebookSdk }) => {
-      loadFacebookSdk(fbConfig.appId).catch(() => {
+      loadFacebookSdk(appId).catch(() => {
         // SDK optional — manual token connect still works without it.
       });
     });
@@ -332,9 +344,34 @@ export function AppSidebar({
     }
   };
 
-  return (
-    <Sidebar variant="floating">
-      <SidebarHeader className="border-b border-sidebar-border/80 px-4 py-4 bg-gradient-to-b from-white to-[rgba(220,248,198,0.42)]">
+  const renderNavItem = (item: NavItem, testPrefix = "nav") => {
+    const isActive = location === item.url || location.startsWith(`${item.url}/`);
+    const badgeCount = item.badge ? getBadgeCount(item.badge) : 0;
+    return (
+      <SidebarMenuItem key={item.url}>
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          data-testid={`${testPrefix}-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+        >
+          <Link href={item.url}>
+            <item.icon className="h-4 w-4" />
+            <span className="flex-1">{item.title}</span>
+            {item.soon && (
+              <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">Soon</span>
+            )}
+            {badgeCount > 0 && (
+              <Badge variant="secondary" className="ml-auto h-5 min-w-5 px-1.5 text-xs">
+                {badgeCount}
+              </Badge>
+            )}
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
+  const accountSwitcher = (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-2xl border border-white/70 bg-white/80 p-2.5 hover-elevate text-left shadow-sm" data-testid="button-account-switcher">
@@ -500,40 +537,22 @@ export function AppSidebar({
             </Dialog>
           </DropdownMenuContent>
         </DropdownMenu>
+  );
+
+  return (
+    <Sidebar variant="floating">
+      <SidebarHeader className="border-b border-sidebar-border/80 px-4 py-4 bg-gradient-to-b from-white to-teal-50/60">
+        <Link href="/dashboard" aria-label="ChatBoatAI dashboard" data-testid="link-brand">
+          <BrandLogo />
+        </Link>
       </SidebarHeader>
 
       <SidebarContent className="bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(247,251,248,0.94))]">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>CRM</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => {
-                const isActive = location === item.url;
-                const badgeCount = item.badge ? getBadgeCount(item.badge) : 0;
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="flex-1">{item.title}</span>
-                        {badgeCount > 0 && (
-                          <Badge 
-                            variant="secondary" 
-                            className="ml-auto h-5 min-w-5 px-1.5 text-xs"
-                          >
-                            {badgeCount}
-                          </Badge>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {crmTopItems.map((item) => renderNavItem(item))}
 
               <Collapsible open={contactsOpen} onOpenChange={setContactsOpen}>
                 <SidebarMenuItem>
@@ -572,6 +591,20 @@ export function AppSidebar({
                 </SidebarMenuItem>
               </Collapsible>
 
+              {crmItems.map((item) => renderNavItem(item))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="flex items-center gap-1.5">
+            <FaWhatsapp className="h-3.5 w-3.5 text-[#25D366]" /> WhatsApp
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="mb-2 px-1">{accountSwitcher}</div>
+            <SidebarMenu>
+              {whatsappItems.map((item) => renderNavItem(item, "nav-whatsapp"))}
+
               <Collapsible open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
@@ -609,30 +642,13 @@ export function AppSidebar({
                 </SidebarMenuItem>
               </Collapsible>
 
-              {bottomNavItems.map((item) => {
-                const isActive = location === item.url;
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="flex-1">{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {whatsappBottomItems.map((item) => renderNavItem(item, "nav-whatsapp"))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsItems.map((item) => {
@@ -682,7 +698,7 @@ export function AppSidebar({
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[#25D366]" />
               </span>
               <Wifi className="h-3.5 w-3.5 text-[#25D366]" />
-              <span className="text-[#075E54]/70 font-medium">Meta API Connected</span>
+              <span className="text-[#075E54]/70 font-medium">WhatsApp connected</span>
             </>
           ) : apiStatus === "error" ? (
             <>
@@ -692,7 +708,7 @@ export function AppSidebar({
           ) : (
             <>
               <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">Not Connected</span>
+              <span className="text-muted-foreground">WhatsApp not connected</span>
             </>
           )}
         </div>

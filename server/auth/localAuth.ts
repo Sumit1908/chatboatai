@@ -16,8 +16,7 @@ import {
   getActiveSessionId,
   invalidateAllUserSessions,
 } from "./singleSession";
-import { TRIAL_DAYS } from "../trialLimits";
-import { blockExpiredTrialWrites } from "../subscriptionGate";
+import { blockUnpaidWrites } from "../subscriptionGate";
 import { ensureCsrfToken, verifyCsrf } from "../csrf";
 import {
   requestPasswordReset,
@@ -70,7 +69,7 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
-  app.use(blockExpiredTrialWrites);
+  app.use(blockUnpaidWrites);
 
   passport.use(
     new LocalStrategy(
@@ -112,7 +111,6 @@ export async function setupAuth(app: Express) {
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
       const emailVerificationToken = crypto.randomBytes(32).toString("hex");
       const [user] = await db
         .insert(users)
@@ -121,8 +119,8 @@ export async function setupAuth(app: Express) {
           passwordHash,
           firstName: firstName || undefined,
           lastName: lastName || undefined,
-          subscriptionStatus: "trial",
-          trialEndsAt,
+          // No free trial: a new account has no plan until it pays.
+          subscriptionStatus: "inactive",
           emailVerificationToken,
         })
         .returning();

@@ -52,7 +52,7 @@ export default function Contact() {
 
       toast({
         title: "Message Sent",
-        description: "Thank you for contacting us. We'll get back to you within 24 hours.",
+        description: "Thank you for contacting us. We'll get back to you by email.",
       });
       form.reset();
     } catch {
@@ -101,7 +101,7 @@ export default function Contact() {
               <CardHeader>
                 <CardTitle>Send us a Message</CardTitle>
                 <CardDescription>
-                  Fill out the form below and we'll get back to you within 24 hours.
+                  Fill out the form below and we'll get back to you by email.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -206,7 +206,7 @@ export default function Contact() {
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-2">Response Time</h3>
                 <p className="text-sm text-muted-foreground">
-                  We typically respond to all inquiries within 24 hours during business days. 
+                  We reply to every inquiry by email as soon as we can. 
                   For urgent matters, please call our support line.
                 </p>
               </CardContent>

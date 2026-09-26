@@ -63,7 +63,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TableSkeleton } from "@/components/ui/skeleton";
 
-const MONTHLY_PLAN_PRICE_INR = 1999;
 
 interface AdminUser extends User {
   billingPlan?: {
@@ -78,7 +77,7 @@ interface AdminUser extends User {
 interface AdminStats {
   totalUsers: number;
   activeUsers: number;
-  trialUsers: number;
+  noPlanUsers: number;
   paidUsers: number;
   pendingApproval: number;
   mrrInr?: number;
@@ -338,12 +337,16 @@ export default function Admin() {
       user.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" || user.subscriptionStatus === statusFilter;
+    // "trial" is a legacy status (trials were removed) - listed with Inactive.
+    const matchesStatus =
+      statusFilter === "all" ||
+      user.subscriptionStatus === statusFilter ||
+      (statusFilter === "inactive" && user.subscriptionStatus === "trial");
 
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const pendingUsers = users.filter(u => u.subscriptionStatus === "inactive" && !u.grantedFreeAccess);
+  const pendingUsers = users.filter(u => (u.subscriptionStatus === "inactive" || u.subscriptionStatus === "trial") && !u.grantedFreeAccess);
 
   const getStatusBadge = (user: User) => {
     if (user.grantedFreeAccess) {
@@ -353,7 +356,7 @@ export default function Admin() {
       return <Badge className="bg-accent text-accent-foreground border-accent">Active</Badge>;
     }
     if (user.subscriptionStatus === "trial") {
-      return <Badge variant="secondary">Trial</Badge>;
+      return <Badge variant="outline">Inactive (former trial)</Badge>;
     }
     if (user.subscriptionStatus === "cancelled") {
       return <Badge variant="destructive">Cancelled</Badge>;
@@ -429,11 +432,12 @@ export default function Admin() {
   }
 
   const paidUsers = stats?.paidUsers ?? 0;
-  const trialUsers = stats?.trialUsers ?? 0;
+  const noPlanUsers = stats?.noPlanUsers ?? 0;
   const totalUsers = stats?.totalUsers ?? 0;
   const pendingApproval = stats?.pendingApproval ?? 0;
-  const mrr = stats?.mrrInr ?? paidUsers * MONTHLY_PLAN_PRICE_INR;
-  const trialToPaidPct = totalUsers > 0 ? Math.round((paidUsers / totalUsers) * 100) : 0;
+  // Server sums each paying customer's current plan price (Admin -> Pricing Plans).
+  const mrr = stats?.mrrInr ?? 0;
+  const paidPct = totalUsers > 0 ? Math.round((paidUsers / totalUsers) * 100) : 0;
 
   return (
     <AdminLayout activeTab={tab} onTabSelect={setTab}>
@@ -459,8 +463,8 @@ export default function Admin() {
               </Card>
               <Card className="border-t-[3px] border-t-[hsl(var(--chart-3))]">
                 <CardContent className="p-4">
-                  <div className="text-xs text-muted-foreground uppercase tracking-wider">Trial</div>
-                  <div className="font-heading text-3xl font-bold mt-1" data-testid="text-trial-users">{trialUsers}</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider">No plan</div>
+                  <div className="font-heading text-3xl font-bold mt-1" data-testid="text-no-plan-users">{noPlanUsers}</div>
                 </CardContent>
               </Card>
               <Card className="border-t-[3px] border-t-foreground">
@@ -491,7 +495,7 @@ export default function Admin() {
                   />
                   <div className="flex flex-col gap-1.5 text-xs flex-1">
                     <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-[hsl(var(--chart-2))]" /><span className="text-muted-foreground">Active</span><span className="ml-auto font-semibold">{stats?.activeUsers ?? 0}</span></div>
-                    <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-[hsl(var(--chart-3))]" /><span className="text-muted-foreground">Trial</span><span className="ml-auto font-semibold">{trialUsers}</span></div>
+                    <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-[hsl(var(--chart-3))]" /><span className="text-muted-foreground">No plan</span><span className="ml-auto font-semibold">{noPlanUsers}</span></div>
                   </div>
                 </CardContent>
               </Card>
@@ -503,8 +507,8 @@ export default function Admin() {
                     <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-foreground rounded-full" style={{ width: `${totalUsers > 0 ? (paidUsers / totalUsers) * 100 : 0}%` }} /></div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-xs mb-1"><span className="text-muted-foreground">Trial</span><span className="font-semibold">{trialUsers} of {totalUsers}</span></div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-[hsl(var(--chart-3))] rounded-full" style={{ width: `${totalUsers > 0 ? (trialUsers / totalUsers) * 100 : 0}%` }} /></div>
+                    <div className="flex justify-between text-xs mb-1"><span className="text-muted-foreground">No plan</span><span className="font-semibold">{noPlanUsers} of {totalUsers}</span></div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-[hsl(var(--chart-3))] rounded-full" style={{ width: `${totalUsers > 0 ? (noPlanUsers / totalUsers) * 100 : 0}%` }} /></div>
                   </div>
                   <div>
                     <div className="flex justify-between text-xs mb-1"><span className="text-muted-foreground">Pending approval</span><span className="font-semibold">{pendingApproval}</span></div>
@@ -571,7 +575,7 @@ export default function Admin() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-semibold">Revenue</CardTitle>
-                  <span className="text-xs text-muted-foreground">Based on ₹{MONTHLY_PLAN_PRICE_INR}/mo plan</span>
+                  <span className="text-xs text-muted-foreground">From each paying customer&apos;s current plan price</span>
                 </CardHeader>
                 <CardContent className="flex gap-8 flex-wrap">
                   <div>
@@ -584,7 +588,7 @@ export default function Admin() {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wider">Users on paid</div>
-                    <div className="font-heading text-2xl font-bold mt-1">{trialToPaidPct}%</div>
+                    <div className="font-heading text-2xl font-bold mt-1">{paidPct}%</div>
                   </div>
                 </CardContent>
               </Card>
@@ -762,7 +766,6 @@ export default function Admin() {
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="trial">Trial</SelectItem>
                       <SelectItem value="inactive">Inactive</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>

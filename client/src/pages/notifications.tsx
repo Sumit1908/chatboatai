@@ -358,6 +358,11 @@ export default function Notifications() {
                             </div>
                           )}
                         </div>
+                        {notification.status === "failed" && notification.failureReason && (
+                          <p className="mt-2 text-sm text-destructive" data-testid={`text-failure-${notification.id}`}>
+                            Not sent: {notification.failureReason}
+                          </p>
+                        )}
                       </CardContent>
                     </Card>
                   );

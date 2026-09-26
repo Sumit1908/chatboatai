@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, decimal, jsonb, index, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, decimal, jsonb, index, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -161,7 +161,10 @@ export const uploadedFiles = pgTable("uploaded_files", {
   // instead of in `data`. Null means the row is still database-backed.
   storageKey: varchar("storage_key", { length: 512 }),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("uploaded_files_user_id_idx").on(table.userId),
+  index("uploaded_files_storage_key_idx").on(table.storageKey).where(sql`storage_key IS NOT NULL`),
+]);
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type InsertUploadedFile = typeof uploadedFiles.$inferInsert;
@@ -223,6 +226,7 @@ export const messages = pgTable("messages", {
   index("messages_account_sent_at_idx").on(table.accountId, table.sentAt),
   index("messages_campaign_phone_idx").on(table.campaignId, table.recipientPhone),
   index("messages_template_id_idx").on(table.templateId),
+  uniqueIndex("messages_whatsapp_id_uidx").on(table.whatsappMessageId).where(sql`whatsapp_message_id IS NOT NULL`),
 ]);
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
@@ -244,7 +248,9 @@ export const campaignMetrics = pgTable("campaign_metrics", {
   failedCount: integer("failed_count").default(0),
   totalCost: decimal("total_cost", { precision: 10, scale: 2 }).default("0"),
   lastUpdatedAt: timestamp("last_updated_at").defaultNow(),
-});
+}, (table) => [
+  index("campaign_metrics_account_idx").on(table.accountId),
+]);
 
 export const insertCampaignMetricsSchema = createInsertSchema(campaignMetrics);
 
@@ -373,8 +379,9 @@ export const contacts = pgTable("contacts", {
   index("contacts_account_id_idx").on(table.accountId),
   index("contacts_account_status_idx").on(table.accountId, table.status),
   index("contacts_account_created_idx").on(table.accountId, table.createdAt),
-  // GIN indexes for list_ids / tag_ids are created in script/ensureIndexes.ts
-  // (Drizzle's index helper doesn't express jsonb GIN cleanly across versions).
+  uniqueIndex("contacts_account_phone_uidx").on(table.accountId, table.phone),
+  index("contacts_list_ids_gin").using("gin", table.listIds),
+  index("contacts_tag_ids_gin").using("gin", table.tagIds),
 ]);
 
 export const insertContactSchema = createInsertSchema(contacts).omit({
@@ -433,6 +440,7 @@ export const conversationMessages = pgTable("conversation_messages", {
   readAt: timestamp("read_at"),
 }, (table) => [
   index("conversation_messages_conv_sent_idx").on(table.conversationId, table.sentAt),
+  index("conversation_messages_inbound_idx").on(table.conversationId).where(sql`direction = 'inbound'`),
 ]);
 
 export const insertConversationMessageSchema = createInsertSchema(conversationMessages).omit({
@@ -484,6 +492,8 @@ export const notifications = pgTable("notifications", {
   failedCount: integer("failed_count").default(0),
   templateVariables: jsonb("template_variables").$type<Record<string, string>>(),
   headerMediaUrl: text("header_media_url"),
+  // Why the last send attempt failed (scheduled or manual), shown in the UI.
+  failureReason: text("failure_reason"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("notifications_account_id_idx").on(table.accountId),
@@ -494,6 +504,8 @@ export const notifications = pgTable("notifications", {
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
+  // Server-written only (send/scheduler outcome).
+  failureReason: true,
 });
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
@@ -559,7 +571,9 @@ export type WebsiteSettings = typeof websiteSettings.$inferSelect;
 export const activeAccounts = pgTable("active_accounts", {
   userId: varchar("user_id").primaryKey(),
   accountId: varchar("account_id").notNull(),
-});
+}, (table) => [
+  index("active_accounts_account_id_idx").on(table.accountId),
+]);
 
 // Team Members (account sharing)
 export const teamMembers = pgTable("team_members", {
@@ -597,3 +611,65 @@ export interface MediaAsset {
   mimeType: string;
   createdAt: Date;
 }
+
+// ============== CRM ==============
+// Owned by the user's workspace (owner_user_id), not a WhatsApp account, so
+// the CRM works without WhatsApp connected. Every query must filter by
+// owner_user_id - see server/crm/repository.ts. The same DDL is applied on
+// boot by ensureCrmTables() (keep both in sync), like billing_plans.
+
+export const crmLeads = pgTable("crm_leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerUserId: varchar("owner_user_id").notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  email: varchar("email", { length: 254 }),
+  phone: varchar("phone", { length: 32 }),
+  company: varchar("company", { length: 200 }),
+  source: varchar("source", { length: 32 }).notNull().default("manual"),
+  status: varchar("status", { length: 32 }).notNull().default("new"),
+  estimatedValueInr: integer("estimated_value_inr"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("crm_leads_owner_created_idx").on(table.ownerUserId, table.createdAt),
+  index("crm_leads_owner_status_idx").on(table.ownerUserId, table.status),
+]);
+
+export const crmDeals = pgTable("crm_deals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerUserId: varchar("owner_user_id").notNull(),
+  leadId: varchar("lead_id"),
+  title: varchar("title", { length: 200 }).notNull(),
+  contactName: varchar("contact_name", { length: 200 }),
+  valueInr: integer("value_inr").notNull().default(0),
+  stage: varchar("stage", { length: 32 }).notNull().default("new"),
+  expectedCloseDate: timestamp("expected_close_date"),
+  closedAt: timestamp("closed_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("crm_deals_owner_stage_idx").on(table.ownerUserId, table.stage),
+  index("crm_deals_owner_closed_idx").on(table.ownerUserId, table.closedAt),
+]);
+
+export const crmTasks = pgTable("crm_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerUserId: varchar("owner_user_id").notNull(),
+  leadId: varchar("lead_id"),
+  dealId: varchar("deal_id"),
+  title: varchar("title", { length: 200 }).notNull(),
+  type: varchar("type", { length: 32 }).notNull().default("follow_up"),
+  dueAt: timestamp("due_at").notNull(),
+  completedAt: timestamp("completed_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("crm_tasks_owner_due_idx").on(table.ownerUserId, table.dueAt),
+]);
+
+export type CrmLead = typeof crmLeads.$inferSelect;
+export type CrmDeal = typeof crmDeals.$inferSelect;
+export type CrmTask = typeof crmTasks.$inferSelect;

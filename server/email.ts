@@ -38,7 +38,7 @@ export async function sendVerificationEmail(to: string, token: string, firstName
     html: `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
         <h2>Welcome to ChatBoatAI${firstName ? `, ${firstName}` : ""}!</h2>
-        <p>Please verify your email address to activate your 7-day free trial.</p>
+        <p>Please verify your email address to finish setting up your ChatBoatAI account.</p>
         <p>
           <a href="${verifyUrl}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
             Verify Email Address
@@ -50,6 +50,41 @@ export async function sendVerificationEmail(to: string, token: string, firstName
   });
   if (error) {
     throw new Error(`Resend rejected verification email to ${to}: ${error.message}`);
+  }
+}
+
+export async function sendPasswordResetEmail(to: string, token: string) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[Email] RESEND_API_KEY not set - skipping password reset email to", to);
+    return;
+  }
+
+  const appUrl = process.env.APP_URL || "https://chatboatai.in";
+  const resetUrl = `${appUrl}/reset-password?token=${token}`;
+
+  const resend = getClient();
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: "Reset your ChatBoatAI password",
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2>Reset your password</h2>
+        <p>We received a request to reset the password for your ChatBoatAI account. This link expires in 1 hour.</p>
+        <p>
+          <a href="${resetUrl}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
+            Reset Password
+          </a>
+        </p>
+        <p style="color:#666;font-size:13px;">Or paste this link into your browser: ${resetUrl}</p>
+        <p style="color:#666;font-size:13px;">If you didn't request this, you can safely ignore this email — your password will not be changed.</p>
+      </div>
+    `,
+  });
+  if (error) {
+    // Deliberately omits resetUrl/token — only the recipient and Resend's
+    // own error message are logged.
+    throw new Error(`Resend rejected password reset email to ${to}: ${error.message}`);
   }
 }
 

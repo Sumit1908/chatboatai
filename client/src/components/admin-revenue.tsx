@@ -26,13 +26,12 @@ interface RevenueSnapshot {
     revenueThisWeek: number;
     arpu: number;
     activePaid: number;
-    trialUsers: number;
     freeAccess: number;
     cancelled: number;
     inactive: number;
     expired: number;
     totalUsers: number;
-    trialToPaidPct: number;
+    signupToPaidPct: number;
     churnPct: number;
     upgrades: number;
     renewals: number;
@@ -159,16 +158,16 @@ export function AdminRevenuePanel() {
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard title="Active paid" value={c.activePaid} icon={Users} />
-            <MetricCard title="On trial" value={c.trialUsers} icon={Clock} />
+            <MetricCard title="No plan (signed up)" value={c.inactive} icon={Clock} />
             <MetricCard title="Free access" value={c.freeAccess} icon={Users} />
             <MetricCard title="Cancelled / expired" value={c.cancelled} hint={`${c.expired} expired entitlements`} icon={UserX} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard title="Inactive" value={c.inactive} icon={UserX} />
-            <MetricCard title="Trial → paid" value={`${c.trialToPaidPct}%`} hint={`${c.activePaid} of ${c.totalUsers} users`} icon={TrendingUp} />
+            <MetricCard title="Sign-up → paid" value={`${c.signupToPaidPct}%`} hint={`${c.activePaid} of ${c.totalUsers} users`} icon={TrendingUp} />
             <MetricCard title="Churn" value={`${c.churnPct}%`} icon={AlertTriangle} />
             <MetricCard title="Active catalog plans" value={c.activePlans} icon={CreditCard} />
+            <MetricCard title="Expired entitlements" value={c.expired} icon={UserX} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">

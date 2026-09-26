@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandLogo } from "@/components/crm/brand";
+import { LEGAL_LAST_UPDATED, SERVICE_DESCRIPTION } from "@/lib/legal";
 import { EMAIL_INFO } from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
 
@@ -11,12 +13,7 @@ export default function Privacy() {
       <nav className="border-b">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-              <span className="text-xl font-bold">ChatBoatAI</span>
-            </div>
+            <BrandLogo className="cursor-pointer" />
           </Link>
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2">
@@ -28,7 +25,7 @@ export default function Privacy() {
 
       <main className="container mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
-        <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+        <p className="text-muted-foreground mb-8">Last updated: {LEGAL_LAST_UPDATED}</p>
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
           <section>
@@ -36,8 +33,12 @@ export default function Privacy() {
             <p className="text-muted-foreground leading-relaxed">
               ChatBoatAI ("we", "our", or "us") is committed to protecting your privacy.
               This Privacy Policy explains how we collect, use, disclose, and safeguard your information 
-              when you use our WhatsApp broadcasting platform service.
+              when you use our service.
             </p>
+            <p className="text-muted-foreground leading-relaxed mt-4">{SERVICE_DESCRIPTION}</p>
+            {/* LEGAL REVIEW (owner): add the legal entity name, registered address and, if required
+                for your business, a Grievance Officer name and contact. These are business-specific
+                and were not invented here. */}
           </section>
 
           <section>
@@ -45,8 +46,8 @@ export default function Privacy() {
             <p className="text-muted-foreground leading-relaxed mb-4">We collect information that you provide directly to us, including:</p>
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
               <li>Account information (name, email address, phone number)</li>
-              <li>Contact lists and customer data you upload for messaging campaigns</li>
-              <li>Message templates and campaign content</li>
+              <li>CRM records you create or import, such as leads, contacts, deals, follow-ups, tasks and notes</li>
+              <li>Contact lists and customer data you upload, and WhatsApp messages, templates and campaign content if you use the WhatsApp integration</li>
               <li>Payment information processed through secure third-party payment processors</li>
               <li>Usage data and analytics about how you use our platform</li>
             </ul>
@@ -73,6 +74,10 @@ export default function Privacy() {
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground mt-4">
               <li>With Meta/WhatsApp as required to provide the WhatsApp Business API services</li>
               <li>With service providers who assist in our operations</li>
+              {/* LEGAL REVIEW (owner): providers the code actually uses - Razorpay (payments),
+                  Resend (email), Cloudflare R2 (file storage, if configured), Redis/Upstash
+                  (message queue, if configured), plus your hosting and database providers.
+                  Decide whether to name them here. */}
               <li>To comply with legal obligations or protect our rights</li>
               <li>With your consent or at your direction</li>
             </ul>
@@ -85,6 +90,15 @@ export default function Privacy() {
               information against unauthorized access, alteration, disclosure, or destruction. 
               However, no method of transmission over the Internet is 100% secure.
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">5a. AI Features</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              AI features shown as “Coming soon” are not yet active, and we do not currently send your data to
+              any AI provider.
+            </p>
+            {/* LEGAL REVIEW (owner): update this section before any AI feature launches. */}
           </section>
 
           <section>

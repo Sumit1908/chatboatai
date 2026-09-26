@@ -34,7 +34,7 @@ export default function NotFound() {
           <h1 className="font-heading text-3xl md:text-4xl font-bold">Page not found</h1>
           <p className="text-[#075E54]/65 leading-relaxed">
             The page you requested does not exist or may have moved. Use the links below to continue
-            exploring ChatBoatAI’s WhatsApp Business API platform.
+            exploring ChatBoatAI — the CRM with WhatsApp and your business tools built in.
           </p>
           <div className="flex flex-wrap justify-center gap-2 pt-2">
             {HELPFUL_LINKS.map(({ href, label, icon: Icon }) => (

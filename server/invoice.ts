@@ -33,7 +33,8 @@ export async function buildPaymentInvoiceHtml(params: {
   const { payment, user } = params;
   const plan = payment.billingPlanId ? await getBillingPlanById(payment.billingPlanId) : undefined;
   const fromPlan = payment.fromPlanId ? await getBillingPlanById(payment.fromPlanId) : undefined;
-  const invoiceNo = `INV-${(payment.razorpayPaymentId || payment.id).slice(-10).toUpperCase()}`;
+  // A payment receipt, not a GST tax invoice (no GSTIN registered).
+  const invoiceNo = `RCPT-${(payment.razorpayPaymentId || payment.id).slice(-10).toUpperCase()}`;
   const issuedAt = payment.createdAt ? new Date(payment.createdAt) : new Date();
   const customerName =
     `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Customer";
@@ -46,13 +47,13 @@ export async function buildPaymentInvoiceHtml(params: {
         : typeLabel(payment.type));
 
   const amountLabel = formatPriceLabel(payment.amountInr);
-  const filename = `chatboatai-invoice-${invoiceNo}.html`;
+  const filename = `chatboatai-receipt-${invoiceNo}.html`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(invoiceNo)} — ChatBoatAI</title>
+  <title>Payment Receipt ${escapeHtml(invoiceNo)} — ChatBoatAI</title>
   <style>
     :root { color-scheme: light; }
     body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #0f3d36; margin: 0; background: #f7fbf8; }
@@ -87,12 +88,12 @@ export async function buildPaymentInvoiceHtml(params: {
     <div class="header">
       <div>
         <div class="brand">ChatBoatAI</div>
-        <div class="muted">WhatsApp Business API platform<br/>Payment receipt / tax invoice</div>
+        <div class="muted">CRM &amp; business integrations platform</div>
       </div>
       <div class="right">
-        <h1>Invoice</h1>
+        <h1>Payment Receipt</h1>
         <div class="muted">
-          <strong>${escapeHtml(invoiceNo)}</strong><br/>
+          Receipt no. <strong>${escapeHtml(invoiceNo)}</strong><br/>
           Date: ${escapeHtml(issuedAt.toLocaleString("en-IN"))}<br/>
           Status: <span class="badge">${escapeHtml(payment.status)}</span>
         </div>
@@ -139,8 +140,8 @@ export async function buildPaymentInvoiceHtml(params: {
     </table>
 
     <div class="footer">
-      This receipt confirms payment collected via Razorpay for ChatBoatAI. GST, if applicable, is included as per your checkout.
-      For support contact your ChatBoatAI account manager or reply from your registered email.
+      This receipt confirms payment collected via Razorpay for ChatBoatAI.
+      For help with this payment, contact ChatBoatAI support from your registered email.
       <br/><br/>
       Generated on ${escapeHtml(new Date().toLocaleString("en-IN"))}.
     </div>

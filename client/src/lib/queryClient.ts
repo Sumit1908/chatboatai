@@ -47,18 +47,36 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
-  if (method.toUpperCase() !== "GET") {
-    const token = await getCsrfToken();
-    if (token) headers["X-CSRF-Token"] = token;
-  }
+  const isMutation = method.toUpperCase() !== "GET";
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  const send = async () => {
+    const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+    if (isMutation) {
+      const token = await getCsrfToken();
+      if (token) headers["X-CSRF-Token"] = token;
+    }
+    return fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
+  };
+
+  let res = await send();
+
+  // The cached token belongs to the session it was issued for. Signing in
+  // regenerates the session (passport), so a token fetched before login -
+  // e.g. by the contact form, then an SPA navigation to /admin-login - is
+  // rejected on every admin mutation until a full page reload. Refetch once
+  // and retry.
+  if (isMutation && res.status === 403 && cachedCsrfToken) {
+    const body = await res.clone().json().catch(() => null);
+    if (typeof body?.error === "string" && body.error.includes("CSRF")) {
+      clearCsrfToken();
+      res = await send();
+    }
+  }
 
   await throwIfResNotOk(res);
   return res;

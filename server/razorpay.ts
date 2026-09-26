@@ -11,9 +11,31 @@ import {
 
 let client: Razorpay | null = null;
 
+/** Env values pasted into a dashboard often carry quotes or a trailing newline. */
+function readRazorpayEnv(
+  name: "RAZORPAY_KEY_ID" | "RAZORPAY_KEY_SECRET" | "RAZORPAY_WEBHOOK_SECRET",
+): string | undefined {
+  const value = process.env[name]?.trim().replace(/^["']|["']$/g, "").trim();
+  return value || undefined;
+}
+
+/**
+ * The public key id handed to Checkout. Must be the same normalized value
+ * the server-side client uses - sending the raw env value (with stray
+ * whitespace/quotes) makes Checkout reject the key while every server call
+ * still succeeds.
+ */
+export function getPublicKeyId(): string | undefined {
+  return readRazorpayEnv("RAZORPAY_KEY_ID");
+}
+
+export function isRazorpayConfigured(): boolean {
+  return !!readRazorpayEnv("RAZORPAY_KEY_ID") && !!readRazorpayEnv("RAZORPAY_KEY_SECRET");
+}
+
 function getClient(): Razorpay {
-  const keyId = process.env.RAZORPAY_KEY_ID?.trim().replace(/^["']|["']$/g, "");
-  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim().replace(/^["']|["']$/g, "");
+  const keyId = readRazorpayEnv("RAZORPAY_KEY_ID");
+  const keySecret = readRazorpayEnv("RAZORPAY_KEY_SECRET");
   if (!keyId || !keySecret) {
     throw new Error("RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set");
   }
@@ -22,6 +44,10 @@ function getClient(): Razorpay {
       key_id: keyId,
       key_secret: keySecret,
     });
+    // Tests only (like META_GRAPH_API_ORIGIN): send Razorpay API calls to a
+    // local stand-in. verify-deploy refuses to start a real deploy with it set.
+    const origin = process.env.RAZORPAY_API_ORIGIN?.trim();
+    if (origin) (client as any).api.rq.defaults.baseURL = origin.replace(/\/$/, "");
   }
   return client;
 }
@@ -86,6 +112,7 @@ export async function createSubscription(
   customerEmail: string,
   customerName: string,
   billingPlanId?: string,
+  userId?: string,
 ) {
   const plan =
     (billingPlanId ? await getBillingPlanById(billingPlanId) : undefined) ||
@@ -111,6 +138,10 @@ export async function createSubscription(
         email: customerEmail,
         name: customerName,
         billingPlanId: billingPlanRowId,
+        // Lets /api/subscription/confirm and the webhook tie the
+        // subscription to its owner even if the user started a second
+        // checkout (which overwrites users.razorpay_subscription_id).
+        ...(userId ? { userId } : {}),
       },
     } as Parameters<Razorpay["subscriptions"]["create"]>[0]);
   }
@@ -120,11 +151,15 @@ export async function createSubscription(
     subscription = await create(planId);
   } catch (error: any) {
     const razorError = error?.error;
+    // Razorpay answers "The id provided does not exist" for a plan id from
+    // the other mode (test vs live) or another account - exactly what every
+    // plan hits after switching RAZORPAY_KEY_* from test to live keys. Only
+    // matching "invalid" missed that, so checkout failed for every plan.
     const isBadRequestIdNotFound =
       error?.statusCode === 400 &&
       razorError?.code === "BAD_REQUEST_ERROR" &&
       typeof razorError?.description === "string" &&
-      razorError.description.toLowerCase().includes("invalid");
+      /invalid|does not exist|not found/i.test(razorError.description);
 
     // If the saved Razorpay plan id doesn’t exist in the current Razorpay mode/account,
     // clear it, recreate, and retry once.
@@ -239,6 +274,21 @@ export async function applyPlanUpgrade(params: {
     throw new Error("Invalid payment signature");
   }
 
+  // The signature only proves this payment was made against this order. The
+  // plan being upgraded to comes from the request body, so without checking
+  // the order's server-written notes a user could pay for a cheap upgrade
+  // (or reuse another order) and confirm it as a more expensive plan.
+  const order = await getClient().orders.fetch(params.orderId);
+  const notes = (order.notes || {}) as Record<string, string | number | undefined>;
+  if (
+    notes.type !== "plan_upgrade" ||
+    String(notes.userId ?? "") !== params.userId ||
+    String(notes.toPlanId ?? "") !== params.toPlanId ||
+    String(notes.fromPlanId ?? "") !== params.fromPlanId
+  ) {
+    throw new Error("Payment does not match this upgrade");
+  }
+
   const quote = await quotePlanUpgrade(
     params.fromPlanId,
     params.toPlanId,
@@ -259,7 +309,28 @@ export async function applyPlanUpgrade(params: {
     }
   }
 
-  return quote;
+  // What was actually charged (the quote above is recomputed now and can
+  // drift by a day's pro-rata from the amount on the order).
+  return { ...quote, paidInr: Math.round(Number(order.amount) / 100) };
+}
+
+/**
+ * Resolves who owns a subscription checkout and which billing plan it was
+ * created for, from Razorpay's copy of the subscription (notes written by
+ * createSubscription) rather than anything the browser sends.
+ */
+export async function fetchSubscriptionCheckout(subscriptionId: string): Promise<{
+  billingPlanId: string | undefined;
+  userId: string | undefined;
+  razorpayPlanId: string | undefined;
+}> {
+  const subscription = await getClient().subscriptions.fetch(subscriptionId);
+  const notes = (subscription.notes || {}) as Record<string, string | number | undefined>;
+  return {
+    billingPlanId: notes.billingPlanId ? String(notes.billingPlanId) : undefined,
+    userId: notes.userId ? String(notes.userId) : undefined,
+    razorpayPlanId: subscription.plan_id || undefined,
+  };
 }
 
 /** Razorpay returns 401 for both bad keys and missing Subscriptions product access. */
@@ -278,7 +349,7 @@ export async function describeUnauthorizedError(): Promise<string> {
 }
 
 export function verifyWebhookSignature(rawBody: string, signature: string | undefined): boolean {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim();
+  const secret = readRazorpayEnv("RAZORPAY_WEBHOOK_SECRET");
   if (!secret || !signature?.trim()) {
     return false;
   }
@@ -291,7 +362,7 @@ export function verifyPaymentSignature(
   paymentId: string,
   signature: string | undefined,
 ): boolean {
-  const secret = process.env.RAZORPAY_KEY_SECRET?.trim().replace(/^["']|["']$/g, "");
+  const secret = readRazorpayEnv("RAZORPAY_KEY_SECRET");
   if (!secret || !signature?.trim()) {
     return false;
   }
@@ -308,7 +379,7 @@ export function verifySubscriptionPaymentSignature(
   subscriptionId: string,
   signature: string | undefined,
 ): boolean {
-  const secret = process.env.RAZORPAY_KEY_SECRET?.trim().replace(/^["']|["']$/g, "");
+  const secret = readRazorpayEnv("RAZORPAY_KEY_SECRET");
   if (!secret || !signature?.trim()) {
     return false;
   }

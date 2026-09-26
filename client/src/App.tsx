@@ -9,11 +9,18 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import { usePageTracking } from "@/hooks/use-page-tracking";
-import { TrialStatusBadge } from "@/components/trial-status-badge";
-import { TrialLimitsBanner } from "@/components/trial-limits-banner";
+import { PlanGate, PlanRequiredBanner, PlanStatusBadge } from "@/components/plan-access";
 import { EmailVerifyBanner } from "@/components/email-verify-banner";
 import { useAuth } from "@/hooks/use-auth";
 import Dashboard from "@/pages/dashboard";
+import CrmDashboard from "@/pages/crm/crm-dashboard";
+import LeadsPage from "@/pages/crm/leads";
+import { DealsPage, PipelinePage } from "@/pages/crm/deals";
+import { FollowUpsPage, TasksPage } from "@/pages/crm/tasks";
+import ConnectedAppsPage from "@/pages/crm/connected-apps";
+import { AutomationPage, ReportsPage } from "@/pages/crm/coming-soon";
+import CrmProduct from "@/pages/crm-product";
+import IntegrationsPage from "@/pages/integrations";
 import Templates from "@/pages/templates";
 import TemplateEditor from "@/pages/template-editor";
 import Messages from "@/pages/messages";
@@ -29,6 +36,8 @@ import NotificationEditor from "@/pages/notification-editor";
 import NotificationReport from "@/pages/notification-report";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import AdminLogin from "@/pages/admin-login";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
@@ -51,6 +60,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { GoogleAnalytics } from "@/components/google-analytics";
 import type { Template, Campaign, DashboardMetrics } from "@shared/schema";
+import { normalizePrimaryDomain } from "@shared/primaryDomain";
+import { loginUrlFor, nextFromSearch } from "@/lib/next-path";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -64,6 +75,8 @@ const PUBLIC_PATHS = new Set([
   "/proof",
   "/pricing",
   "/faq",
+  "/crm",
+  "/integrations",
   "/privacy",
   "/terms",
   "/refund",
@@ -81,17 +94,31 @@ const PUBLIC_CONTENT_PATHS = new Set([
   "/proof",
   "/pricing",
   "/faq",
+  "/crm",
+  "/integrations",
   "/privacy",
   "/terms",
   "/refund",
   "/contact",
   "/delete-data",
+  "/forgot-password",
+  "/reset-password",
 ]);
 
 function AppRouter() {
   return (
     <Switch>
-      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/dashboard" component={CrmDashboard} />
+      <Route path="/leads" component={LeadsPage} />
+      <Route path="/deals" component={DealsPage} />
+      <Route path="/pipeline" component={PipelinePage} />
+      <Route path="/follow-ups" component={FollowUpsPage} />
+      <Route path="/tasks" component={TasksPage} />
+      <Route path="/automation" component={AutomationPage} />
+      <Route path="/reports" component={ReportsPage} />
+      <Route path="/connected-apps" component={ConnectedAppsPage} />
+      {/* WhatsApp module overview (the previous dashboard) */}
+      <Route path="/whatsapp" component={Dashboard} />
       <Route path="/inbox" component={Inbox} />
       <Route path="/templates" component={Templates} />
       <Route path="/templates/new" component={TemplateEditor} />
@@ -121,11 +148,56 @@ function AppRouter() {
   );
 }
 
+/** Pages that only exist inside the signed-in app (mirrors server/hostRouting.ts). */
+const APP_ONLY_PREFIXES = [
+  "/dashboard",
+  "/inbox",
+  "/templates",
+  "/contacts",
+  "/notifications",
+  "/messages",
+  "/analytics",
+  "/settings",
+  "/billing",
+  "/leads",
+  "/deals",
+  "/pipeline",
+  "/follow-ups",
+  "/tasks",
+  "/automation",
+  "/reports",
+  "/connected-apps",
+  "/whatsapp",
+];
+
+function matchesPrefix(path: string, prefix: string) {
+  return path === prefix || path.startsWith(`${prefix}/`);
+}
+
+function isAdminPath(path: string) {
+  return matchesPrefix(path, "/admin");
+}
+
+function isAppOnlyPath(path: string) {
+  return APP_ONLY_PREFIXES.some((prefix) => matchesPrefix(path, prefix));
+}
+
 function PublicRouter() {
+  const [location] = useLocation();
+
+  // A signed-out visitor on an app URL (bookmarked /admin?tab=plans, an
+  // expired session, a link from an email) has no route in this router and
+  // used to fall through to the 404 page. Send them to the matching sign-in
+  // page instead; after login AppContent routes them back into the app.
+  if (isAdminPath(location)) return <Redirect to="/admin-login" />;
+  if (isAppOnlyPath(location)) return <Redirect to={loginUrlFor(location + window.location.search, "login")} />;
+
   return (
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/features" component={Features} />
+      <Route path="/crm" component={CrmProduct} />
+      <Route path="/integrations" component={IntegrationsPage} />
       <Route path="/trust" component={Trust} />
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/setup-guide" component={SetupGuide} />
@@ -134,6 +206,8 @@ function PublicRouter() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/faq" component={Faq} />
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
@@ -181,22 +255,24 @@ function AuthenticatedApp() {
           apiStatus={metrics?.apiStatus || "disconnected"}
         />
         <SidebarInset className="flex flex-col flex-1 min-w-0">
-          <TrialLimitsBanner />
+          <PlanRequiredBanner />
           <EmailVerifyBanner />
           <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-white/60 bg-[rgba(255,255,255,0.72)] px-4 backdrop-blur-xl">
             <div className="flex items-center gap-2">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <div className="hidden md:flex flex-col">
                 <span className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80">ChatBoatAI Workspace</span>
-                <span className="text-xs text-muted-foreground">WhatsApp campaigns, inbox and analytics</span>
+                <span className="text-xs text-muted-foreground">CRM, pipeline and integrations</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <TrialStatusBadge />
+              <PlanStatusBadge />
             </div>
           </header>
           <main className="flex-1 overflow-auto p-4 md:p-6">
-            <AppRouter />
+            <PlanGate>
+              <AppRouter />
+            </PlanGate>
           </main>
         </SidebarInset>
       </div>
@@ -228,16 +304,19 @@ function AppContent() {
   const [location, setLocation] = useLocation();
   const isAdminRoute = location === "/admin" || location.startsWith("/admin/users/");
 
-  const primaryDomain = import.meta.env.VITE_PRIMARY_DOMAIN as string | undefined;
+  const primaryDomain = normalizePrimaryDomain(
+    import.meta.env.VITE_PRIMARY_DOMAIN as string | undefined,
+  );
   const isAppHost =
     !!primaryDomain && window.location.hostname === `app.${primaryDomain}`;
 
   // The app subdomain never renders marketing/login pages — bounce logged-out
-  // visitors back to the root domain's login instead.
+  // visitors back to the root domain's login instead (the admin one for
+  // /admin URLs).
   useEffect(() => {
     if (isLoading || user || !isAppHost) return;
-    window.location.href = `https://${primaryDomain}/login`;
-  }, [isLoading, user, isAppHost, primaryDomain]);
+    window.location.href = `https://${primaryDomain}${isAdminPath(location) ? "/admin-login" : "/login"}`;
+  }, [isLoading, user, isAppHost, primaryDomain, location]);
 
   // Any authenticated view (dashboard, settings, admin, ...) belongs on the
   // app subdomain. A logged-in user can still land on the root domain via
@@ -250,16 +329,18 @@ function AppContent() {
   useEffect(() => {
     if (isLoading || !user) return;
 
+    const onAuthPage = location === "/" || location === "/login" || location === "/admin-login";
+    // Where a just-signed-in user was heading (e.g. /billing?plan=growth from Pricing).
+    const next = location === "/login" ? nextFromSearch(window.location.search) : null;
+
     if (needsAppHostRedirect) {
       const dest =
         user.role === "super_admin"
           ? isAdminRoute
-            ? location
+            ? `${location}${window.location.search}`
             : "/admin"
-          : location === "/" || location === "/login" || location === "/admin-login"
-            ? "/dashboard"
-            : location;
-      window.location.href = `https://app.${primaryDomain}${dest}${window.location.search}`;
+          : next ?? (onAuthPage ? "/dashboard" : `${location}${window.location.search}`);
+      window.location.href = `https://app.${primaryDomain}${dest}`;
       return;
     }
 
@@ -270,8 +351,8 @@ function AppContent() {
       return;
     }
 
-    if (location === "/" || location === "/login" || location === "/admin-login") {
-      setLocation("/dashboard");
+    if (onAuthPage) {
+      setLocation(next ?? "/dashboard");
     }
   }, [user, isLoading, location, setLocation, isAdminRoute, needsAppHostRedirect, primaryDomain]);
 

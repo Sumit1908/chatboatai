@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandLogo } from "@/components/crm/brand";
+import { LEGAL_LAST_UPDATED } from "@/lib/legal";
 import { EMAIL_SUPPORT, EMAIL_BILLING } from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
 
@@ -11,12 +13,7 @@ export default function Refund() {
       <nav className="border-b">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-              <span className="text-xl font-bold">ChatBoatAI</span>
-            </div>
+            <BrandLogo className="cursor-pointer" />
           </Link>
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2">
@@ -28,9 +25,11 @@ export default function Refund() {
 
       <main className="container mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Refund Policy</h1>
-        <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+        <p className="text-muted-foreground mb-8">Last updated: {LEGAL_LAST_UPDATED}</p>
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
+          {/* OWNER REVIEW: 7-day money-back guarantee is existing business policy, not verified
+              by the product. Confirm you honour it. */}
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Subscription Refunds</h2>
             <p className="text-muted-foreground leading-relaxed">
@@ -68,6 +67,7 @@ export default function Refund() {
             <ol className="list-decimal pl-6 space-y-2 text-muted-foreground">
               <li>Email us at <a href={`mailto:${EMAIL_SUPPORT}`} className="text-primary hover:underline">{EMAIL_SUPPORT}</a></li>
               <li>Include your account email and reason for the refund request</li>
+              {/* OWNER REVIEW: the review and processing timelines below are business commitments. */}
               <li>We will review your request within 2 business days</li>
               <li>If approved, refunds will be processed within 5-7 business days</li>
             </ol>
@@ -82,10 +82,13 @@ export default function Refund() {
             </p>
           </section>
 
+          {/* LEGAL REVIEW (owner): cancellation previously said "through your account settings",
+              but the app has no self-serve cancel - changed to email. Confirm this process. */}
           <section>
             <h2 className="text-2xl font-semibold mb-4">6. Cancellation</h2>
             <p className="text-muted-foreground leading-relaxed">
-              You may cancel your subscription at any time through your account settings. Upon 
+              You may cancel your subscription at any time by emailing{" "}
+              <a href={`mailto:${EMAIL_BILLING}`} className="text-primary hover:underline">{EMAIL_BILLING}</a>. Upon 
               cancellation, you will continue to have access to the Service until the end of your 
               current billing period. No refunds will be provided for the remaining period.
             </p>

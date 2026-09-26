@@ -1,6 +1,8 @@
 import type { RequestHandler } from "express";
 import { authStorage } from "./auth/storage";
-import { getEffectiveTrialEndsAt, hasExceededMessageQuota } from "./trialLimits";
+import type { User } from "@shared/models/auth";
+import { hasExceededMessageQuota } from "./planLimits";
+import { storage } from "./storage";
 import { getCheapestActivePlan } from "./billingPlans";
 import {
   ensureSubscriptionFresh,
@@ -17,11 +19,11 @@ async function getSubscriptionRequiredMessage(): Promise<string> {
   try {
     const cheapest = await getCheapestActivePlan();
     const price = cheapest?.priceLabel ?? "a paid plan";
-    const message = `Your plan has expired or your trial has ended. Subscribe starting at ${price}/month to continue using ChatBoatAI.`;
+    const message = `An active plan is required. Choose a plan (from ${price}/month) in Billing to continue using ChatBoatAI.`;
     cachedPaywallMessage = { message, at: now };
     return message;
   } catch {
-    return "Your plan has expired or your trial has ended. Subscribe to continue using ChatBoatAI.";
+    return SUBSCRIPTION_REQUIRED_MESSAGE;
   }
 }
 
@@ -36,31 +38,53 @@ const MUTATION_WHITELIST_PREFIXES = [
   "/api/webhooks/",
   "/api/verify-email",
   "/api/admin/",
+  // Account housekeeping that must work without a plan.
+  "/api/forgot-password",
+  "/api/reset-password",
+  "/api/auth/change-password",
+  "/api/user/delete-account",
+  "/api/team-members/accept",
+  "/api/team-members/check-invites",
+  "/api/contact-inquiry",
+  "/api/analytics/pageview",
 ];
 
-// Checks whether a user is allowed to send messages right now: super admins
-// and users with granted free access always can, paid+active subscribers
-// can, and trial users can until their trial end date passes. Everyone else
-// (lapsed trial, inactive/cancelled/expired subscription) is blocked.
-export async function hasActiveSubscription(userId: string): Promise<boolean> {
-  const raw = await authStorage.getUser(userId);
-  if (!raw) return false;
-
-  const user = await ensureSubscriptionFresh(raw);
-
-  if (user.role === "super_admin") return true;
-  if (user.grantedFreeAccess) return true;
-  if (isPaidPeriodActive(user)) return true;
-  const trialEndsAt = getEffectiveTrialEndsAt(user);
-  if (user.subscriptionStatus === "trial" && trialEndsAt && trialEndsAt > new Date()) {
-    return true;
-  }
-  return false;
+/** Access from the user's own account: super admin, admin-granted free access, or a paid plan. */
+function hasOwnAccess(user: User): boolean {
+  return user.role === "super_admin" || !!user.grantedFreeAccess || isPaidPeriodActive(user);
 }
 
-// After trial/plan expiry, block every write (POST/PUT/PATCH/DELETE) except billing
-// and auth housekeeping — users can still read data and subscribe.
-export const blockExpiredTrialWrites: RequestHandler = async (req, res, next) => {
+/**
+ * Whether a user may use the app (create, send, edit) right now. There is no
+ * free trial: access comes from super admin / admin-granted free access, the
+ * user's own paid plan, or - for a team member - the paid plan of the owner
+ * of the WhatsApp number they're working in (that owner's plan includes up
+ * to its user limit of people). Everyone else is read-only and can pay.
+ */
+export async function hasActiveSubscription(userId: string): Promise<boolean> {
+  return (await getAccessSource(userId)) !== "none";
+}
+
+export type AccessSource = "own" | "team" | "none";
+
+export async function getAccessSource(userId: string): Promise<AccessSource> {
+  const raw = await authStorage.getUser(userId);
+  if (!raw) return "none";
+  const user = await ensureSubscriptionFresh(raw);
+  if (hasOwnAccess(user)) return "own";
+
+  const active = await storage.getActiveAccountWithDetails(userId);
+  const ownerId = active?.account.userId;
+  if (ownerId && ownerId !== userId) {
+    const rawOwner = await authStorage.getUser(ownerId);
+    if (rawOwner && hasOwnAccess(await ensureSubscriptionFresh(rawOwner))) return "team";
+  }
+  return "none";
+}
+
+// Without an active plan, block every write (POST/PUT/PATCH/DELETE) except
+// billing and account housekeeping - users can still sign in, read and pay.
+export const blockUnpaidWrites: RequestHandler = async (req, res, next) => {
   const method = req.method.toUpperCase();
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
     return next();
@@ -79,7 +103,7 @@ export const blockExpiredTrialWrites: RequestHandler = async (req, res, next) =>
       return res.status(402).json({
         error: "message_quota_exhausted",
         message:
-          "You've exhausted your message quota for the current trial/subscription period. Upgrade your plan to continue.",
+          "You've used your plan's message quota for the current subscription period. Upgrade your plan to continue.",
       });
     }
     return next();
@@ -137,4 +161,4 @@ export {
 };
 
 export const SUBSCRIPTION_REQUIRED_MESSAGE =
-  "Your plan has expired or your trial has ended. Subscribe to continue using ChatBoatAI.";
+  "An active plan is required. Choose a plan in Billing to continue using ChatBoatAI.";

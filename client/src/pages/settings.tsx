@@ -747,9 +747,9 @@ function TeamMembersSection() {
       toast({ title: "Team member invited", description: "They can now access your account when they log in." });
     },
     onError: (err: any) => {
-      let msg = "Failed to add team member";
-      try { msg = JSON.parse(err.message)?.error || msg; } catch {}
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      // apiRequest errors read "<status>: <server message>".
+      const msg = String(err?.message ?? "").replace(/^\d+:\s*/, "") || "Failed to add team member";
+      toast({ title: "Couldn't add team member", description: msg, variant: "destructive" });
     },
   });
 

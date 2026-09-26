@@ -58,6 +58,18 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // Pre-deploy check run by `npm start` before the schema migration.
+  await esbuild({
+    entryPoints: ["script/verify-deploy.ts"],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    outfile: "dist/verify-deploy.cjs",
+    minify: true,
+    external: externals,
+    logLevel: "info",
+  });
 }
 
 buildAll().catch((err) => {

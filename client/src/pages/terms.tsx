@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandLogo } from "@/components/crm/brand";
+import { LEGAL_LAST_UPDATED, SERVICE_DESCRIPTION } from "@/lib/legal";
 import { EMAIL_INFO } from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
 
@@ -11,12 +13,7 @@ export default function Terms() {
       <nav className="border-b">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-              <span className="text-xl font-bold">ChatBoatAI</span>
-            </div>
+            <BrandLogo className="cursor-pointer" />
           </Link>
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2">
@@ -28,7 +25,7 @@ export default function Terms() {
 
       <main className="container mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
-        <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+        <p className="text-muted-foreground mb-8">Last updated: {LEGAL_LAST_UPDATED}</p>
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
           <section>
@@ -42,9 +39,8 @@ export default function Terms() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Description of Service</h2>
             <p className="text-muted-foreground leading-relaxed">
-              ChatBoatAI provides a platform for businesses to send broadcast messages through 
-              the official WhatsApp Business API. Our Service includes template management, contact 
-              management, campaign scheduling, and analytics features.
+              {SERVICE_DESCRIPTION} Features marked “Coming soon” on our website or in the app are not yet
+              available.
             </p>
           </section>
 
@@ -80,6 +76,8 @@ export default function Terms() {
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
               <li>Payment is due at the beginning of each billing cycle</li>
               <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
+              {/* LEGAL REVIEW (owner): there is no self-serve cancel button in the app today;
+                  cancellation is handled by contacting billing (see the Refund Policy). */}
               <li>WhatsApp message costs are separate and charged by Meta</li>
               <li>Refunds are subject to our Refund Policy</li>
             </ul>
@@ -130,6 +128,8 @@ export default function Terms() {
             </p>
           </section>
 
+          {/* LEGAL REVIEW (owner): no governing-law / jurisdiction or legal entity clause exists.
+              Add one with your legal adviser; not invented here. */}
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">

@@ -60,7 +60,8 @@ import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Contact, ContactTag, ContactList } from "@shared/schema";
+import type { Contact, ContactTag, ContactList, WhatsAppAccount } from "@shared/schema";
+import { Link } from "wouter";
 
 const PAGE_SIZE_OPTIONS = [100, 200, 500, 1000] as const;
 
@@ -72,6 +73,10 @@ interface ContactsPageResponse {
 }
 
 export default function Contacts() {
+  // Contacts are stored per WhatsApp number today (see /api/contacts); without
+  // one, saving fails - say so instead of showing a button that can't work.
+  const { data: accountsData } = useQuery<{ accounts: WhatsAppAccount[] }>({ queryKey: ["/api/accounts"] });
+  const noWhatsApp = !!accountsData && accountsData.accounts.length === 0;
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [addContactOpen, setAddContactOpen] = useState(false);
@@ -255,6 +260,18 @@ export default function Contacts() {
           </p>
         </div>
       </div>
+
+      {noWhatsApp && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status" data-testid="notice-contacts-need-whatsapp">
+          <p className="font-medium">Contacts currently need a connected WhatsApp number.</p>
+          <p className="mt-1 text-amber-800">
+            Connect WhatsApp in{" "}
+            <Link href="/settings" className="font-medium underline underline-offset-2">Settings</Link>, or track people as{" "}
+            <Link href="/leads" className="font-medium underline underline-offset-2">Leads</Link> — leads work without WhatsApp.
+            Contacts without WhatsApp are coming soon.
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">

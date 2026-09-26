@@ -43,41 +43,11 @@ async function ensureBillingPlansTable(): Promise<void> {
   `);
 }
 
-/** Upsert seed catalog by slug so local DEFAULT_BILLING_PLAN_SEEDS stay in sync. */
-export async function syncDefaultBillingPlans(): Promise<void> {
-  await ensureBillingPlansTable();
-  for (const seed of DEFAULT_BILLING_PLAN_SEEDS) {
-    const [existing] = await db.select().from(billingPlans).where(eq(billingPlans.slug, seed.slug));
-    if (!existing) {
-      await db.insert(billingPlans).values({ ...seed, features: seed.features });
-      continue;
-    }
-    await db
-      .update(billingPlans)
-      .set({
-        name: seed.name,
-        tagline: seed.tagline,
-        amountInr: seed.amountInr,
-        period: seed.period,
-        featured: seed.featured,
-        active: seed.active,
-        razorpayEnabled: seed.razorpayEnabled,
-        features: seed.features,
-        sortOrder: seed.sortOrder,
-        maxContacts: seed.maxContacts,
-        maxMessagesPerDay: seed.maxMessagesPerDay,
-        maxWhatsappNumbers: seed.maxWhatsappNumbers,
-        maxTemplates: seed.maxTemplates,
-        maxTeamSeats: seed.maxTeamSeats,
-        razorpayPlanId: existing.amountInr !== seed.amountInr ? null : existing.razorpayPlanId,
-        updatedAt: new Date(),
-      })
-      .where(eq(billingPlans.id, existing.id));
-  }
-  seeded = true;
-  console.log(`[BillingPlans] Synced ${DEFAULT_BILLING_PLAN_SEEDS.length} plans from seed`);
-}
-
+/**
+ * Inserts DEFAULT_BILLING_PLAN_SEEDS only when the billing_plans table is
+ * EMPTY (a brand-new database). It never updates existing rows: prices and
+ * features are owned by Admin -> Pricing Plans once plans exist.
+ */
 export async function ensureBillingPlansSeeded(): Promise<void> {
   if (seeded) return;
   await ensureBillingPlansTable();
@@ -119,6 +89,17 @@ export async function getBillingPlanById(id: string): Promise<BillingPlan | unde
 export async function getBillingPlanBySlug(slug: string): Promise<BillingPlan | undefined> {
   await ensureBillingPlansSeeded();
   const [row] = await db.select().from(billingPlans).where(eq(billingPlans.slug, slug));
+  return row ? toBillingPlan(row) : undefined;
+}
+
+export async function getBillingPlanByRazorpayPlanId(
+  razorpayPlanId: string,
+): Promise<BillingPlan | undefined> {
+  await ensureBillingPlansSeeded();
+  const [row] = await db
+    .select()
+    .from(billingPlans)
+    .where(eq(billingPlans.razorpayPlanId, razorpayPlanId));
   return row ? toBillingPlan(row) : undefined;
 }
 
@@ -205,6 +186,15 @@ export async function updateBillingPlan(
   await ensureBillingPlansSeeded();
   const existing = await getBillingPlanById(id);
   if (!existing) return undefined;
+
+  // Same rule as createBillingPlan - a zero/NaN price would be saved, then
+  // fail at Razorpay plan creation on the next checkout for this plan.
+  if (
+    input.amountInr !== undefined &&
+    (!Number.isFinite(input.amountInr) || input.amountInr <= 0)
+  ) {
+    throw new Error("Plan amount must be a positive number");
+  }
 
   if (input.featured === true) {
     await db.update(billingPlans).set({ featured: false, updatedAt: new Date() });

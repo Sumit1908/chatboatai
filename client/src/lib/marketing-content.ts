@@ -1,17 +1,24 @@
 import {
-  Users,
   BarChart3,
-  Shield,
-  Inbox,
-  Send,
+  CalendarClock,
+  Contact,
   FileText,
-  RefreshCw,
-  Lock,
-  BadgeCheck,
+  Handshake,
   Headphones,
-  Eye,
+  Inbox,
+  KanbanSquare,
+  LayoutDashboard,
+  ListChecks,
+  Lock,
+  Plug,
+  Send,
   Server,
+  Shield,
   Clock,
+  UserPlus,
+  Workflow,
+  BadgeCheck,
+  Eye,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,125 +37,219 @@ export const WA = {
   mist: "#F7FBF8",
 } as const;
 
-export const features = [
+/**
+ * "live" = works in the logged-in app today; "soon" = planned, not built.
+ * EVERY public page reads availability from here - change a status only
+ * when the feature actually ships, so the site never over-promises.
+ */
+export type ModuleStatus = "live" | "soon";
+
+export type CrmModule = {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  status: ModuleStatus;
+  summary: string;
+  points: string[];
+};
+
+/** The CRM, in the order the product is organised (matches the app sidebar). */
+export const CRM_MODULES: CrmModule[] = [
   {
-    icon: Send,
-    title: "Broadcast campaigns",
-    desc: "Send offers, launches and event invites to thousands of opted-in contacts in minutes — with per-campaign delivery tracking.",
+    id: "dashboard",
+    name: "Dashboard",
+    icon: LayoutDashboard,
+    status: "live",
+    summary: "Your business at a glance, calculated from your own data.",
+    points: ["Total leads, active deals, deals won and revenue this month", "Pipeline by stage", "Upcoming follow-ups and recent leads"],
   },
   {
-    icon: FileText,
-    title: "Template manager",
-    desc: "Create, submit and track Meta template approvals from the dashboard. Buttons, media headers and variables included.",
+    id: "leads",
+    name: "Leads",
+    icon: UserPlus,
+    status: "live",
+    summary: "Every enquiry in one list, with source, status and value.",
+    points: ["Add leads with phone, email, company and source", "Search and filter by status", "Convert a qualified lead into a deal in one click"],
+  },
+  {
+    id: "contacts",
+    name: "Contacts",
+    icon: Contact,
+    status: "live",
+    summary: "Your customer list with lists, tags and CSV import. Currently requires a connected WhatsApp number.",
+    points: ["Import contacts from CSV", "Organise with lists and tags", "Message contacts through the WhatsApp integration", "Contacts without WhatsApp: coming soon"],
+  },
+  {
+    id: "deals",
+    name: "Deals",
+    icon: Handshake,
+    status: "live",
+    summary: "Track opportunities with value, stage and expected close date.",
+    points: ["Deal value in rupees", "Expected close date and notes", "Linked to the lead it came from"],
+  },
+  {
+    id: "pipeline",
+    name: "Sales Pipeline",
+    icon: KanbanSquare,
+    status: "live",
+    summary: "A visual board from New to Closed Won.",
+    points: ["Drag deals between stages", "Stage totals by count and value", "Won and lost deals recorded with their close date"],
+  },
+  {
+    id: "follow-ups",
+    name: "Follow-ups",
+    icon: CalendarClock,
+    status: "live",
+    summary: "Calls, meetings and messages scheduled against each lead or deal.",
+    points: ["Overdue, today and upcoming views", "Linked to leads and deals", "Mark done in one click"],
+  },
+  {
+    id: "tasks",
+    name: "Tasks",
+    icon: ListChecks,
+    status: "live",
+    summary: "Internal to-dos alongside your customer follow-ups.",
+    points: ["Due dates and notes", "Open and completed lists", "Link a task to a lead or deal"],
+  },
+  {
+    id: "automation",
+    name: "Automation",
+    icon: Workflow,
+    status: "soon",
+    summary: "Rules that assign leads, send first replies and create follow-ups for you.",
+    points: ["Auto-assign new leads", "Follow-up tasks on stage changes", "WhatsApp welcome messages for new leads"],
+  },
+  {
+    id: "reports",
+    name: "Reports",
+    icon: BarChart3,
+    status: "soon",
+    summary: "Deeper reporting on sources, conversion and revenue.",
+    points: ["Conversion by lead source", "Win rate by stage", "Revenue by month, with CSV export"],
+  },
+  {
+    id: "integrations",
+    name: "Integrations",
+    icon: Plug,
+    status: "live",
+    summary: "Channels and tools connected to the CRM — WhatsApp today, more on the way.",
+    points: ["WhatsApp Business (live)", "Gmail, Facebook Leads, Google, Calendar and more (coming soon)"],
+  },
+];
+
+/** AI is an intelligence layer across the CRM. None of it is built yet. */
+export const AI_CAPABILITIES: { title: string; desc: string }[] = [
+  { title: "Lead summaries", desc: "A short summary of each lead's history before you call." },
+  { title: "Next best action", desc: "Suggestions for which leads and deals need attention today." },
+  { title: "Reply drafts", desc: "Draft WhatsApp and email replies from the conversation context." },
+  { title: "Lead scoring", desc: "Rank leads by how likely they are to convert." },
+];
+
+/** What the WhatsApp integration does today (all live - verified in the code). */
+export const WHATSAPP_CAPABILITIES: { icon: LucideIcon; title: string; desc: string }[] = [
+  {
+    icon: Plug,
+    title: "Connect your number",
+    desc: "Connect a WhatsApp Business number through Meta's official platform — embedded signup or your access token.",
   },
   {
     icon: Inbox,
-    title: "Shared team inbox",
-    desc: "Every reply lands in one inbox your whole team can work from — assign chats, add notes and never miss a hot lead.",
+    title: "Shared inbox with replies",
+    desc: "Customer messages land in one inbox. Reply from ChatBoatAI, and give teammates access to the same number.",
   },
   {
-    icon: Users,
-    title: "Contact management",
-    desc: "Import contacts, tag by project or interest, segment audiences and keep opt-in status clean and compliant.",
+    icon: FileText,
+    title: "Message templates",
+    desc: "Create templates with media, variables and buttons, submit them to Meta and track approval.",
   },
   {
-    icon: BarChart3,
-    title: "Real-time analytics",
-    desc: "Sent, delivered, read and failed — tracked live per message and per campaign, so you know exactly what's working.",
+    icon: Send,
+    title: "Campaigns — now or scheduled",
+    desc: "Send approved-template campaigns to your contact lists immediately or at a scheduled time.",
   },
   {
-    icon: RefreshCw,
-    title: "Meta API sync",
-    desc: "One-click sync keeps your quality rating, messaging limits and template statuses up to date, straight from Meta.",
+    icon: Eye,
+    title: "Delivery analytics",
+    desc: "Sent, delivered, read and failed — tracked per message and per campaign.",
+  },
+  {
+    icon: Contact,
+    title: "Contacts, lists and tags",
+    desc: "Import contacts from CSV and organise them into lists and tags for targeting.",
   },
 ];
 
 export const steps = [
   {
     n: "01",
-    title: "Connect your Meta API",
-    desc: "Link your WhatsApp Business account with guided embedded signup. We handle the technical setup end-to-end.",
+    title: "Set up your CRM",
+    desc: "Sign up, add your first leads and create deals for the opportunities you're already working. With WhatsApp connected, you can also import contacts from a CSV.",
   },
   {
     n: "02",
-    title: "Create your templates",
-    desc: "Build message templates with media, variables and call-to-action buttons, then submit them to Meta for approval in-app.",
+    title: "Work your pipeline",
+    desc: "Move deals from New to Closed Won, schedule follow-ups against each lead, and keep tasks in one list.",
   },
   {
     n: "03",
-    title: "Launch & track campaigns",
-    desc: "Pick your audience, schedule the broadcast, and watch delivery and read rates update in real time.",
+    title: "Connect your channels",
+    desc: "Connect WhatsApp to message customers from the same workspace. More integrations are rolling out.",
   },
 ];
 
 export const setupTree = {
-  label: "Go live on ChatBoatAI",
+  label: "Get started on ChatBoatAI",
   children: [
     {
-      label: "Meta Business",
-      children: [
-        { label: "Facebook Business Manager" },
-        { label: "Verify business details" },
-      ],
+      label: "Your CRM",
+      children: [{ label: "Create your account" }, { label: "Add or import leads" }, { label: "Create your first deals" }],
     },
     {
-      label: "WhatsApp API",
-      children: [
-        { label: "Add phone number" },
-        { label: "Embedded signup" },
-        { label: "Connect WABA token" },
-      ],
+      label: "Daily workflow",
+      children: [{ label: "Schedule follow-ups" }, { label: "Move deals through the pipeline" }, { label: "Check the dashboard" }],
     },
     {
-      label: "Templates",
-      children: [
-        { label: "Create message template" },
-        { label: "Submit to Meta" },
-        { label: "Wait for approval" },
-      ],
+      label: "WhatsApp integration",
+      children: [{ label: "Meta Business Manager" }, { label: "Connect your number" }, { label: "Get templates approved" }],
     },
     {
       label: "First campaign",
-      children: [
-        { label: "Import contacts" },
-        { label: "Pick approved template" },
-        { label: "Send & track delivery" },
-      ],
+      children: [{ label: "Import contacts" }, { label: "Pick approved template" }, { label: "Send & track delivery" }],
     },
   ],
 };
 
 export const setupChecklist = [
   {
-    phase: "Before you start",
+    phase: "Step 1 — Your CRM",
     items: [
-      "Facebook Business Manager account with admin access",
-      "A phone number not active on WhatsApp personal or Business app",
-      "Business website or Facebook Page for verification",
+      "Create your ChatBoatAI account and choose a plan",
+      "Add the leads you're working on (contact CSV import is available once WhatsApp is connected)",
+      "Create deals and place them in the right pipeline stage",
     ],
   },
   {
-    phase: "Day 1 — Connect",
+    phase: "Step 2 — Daily workflow",
     items: [
-      "Sign up on ChatBoatAI and open Settings → WhatsApp API",
-      "Complete Meta embedded signup flow",
-      "Paste your permanent access token and WABA ID",
+      "Schedule follow-ups against leads and deals",
+      "Review Overdue and Today on the Follow-ups page each morning",
+      "Mark deals Closed Won so revenue shows on your dashboard",
     ],
   },
   {
-    phase: "Day 1–2 — Templates",
+    phase: "Step 3 — Connect WhatsApp (optional)",
     items: [
-      "Create your first marketing template with clear opt-out language",
-      "Submit for Meta review (usually minutes to hours)",
-      "Fix any rejection reasons with our support team",
+      "Have a Facebook Business Manager account with admin access",
+      "Use a phone number not active on the WhatsApp app",
+      "Connect through Settings → WhatsApp using embedded signup or your access token",
     ],
   },
   {
-    phase: "Day 2–3 — Launch",
+    phase: "Step 4 — WhatsApp campaigns",
     items: [
-      "Import or sync your opted-in contact list",
-      "Create a campaign, select segment and template",
-      "Send a test batch, then launch full broadcast",
+      "Create a template with clear opt-out language and submit it to Meta",
+      "Import or sync your opted-in contacts",
+      "Send a test batch, then launch the full campaign",
     ],
   },
 ];
@@ -157,85 +258,110 @@ export const useCases = [
   {
     tag: "Real estate",
     title: "Developers & brokers",
-    desc: "From new-launch blasts to site-visit reminders and possession updates.",
-    items: [
-      "Project launch broadcasts with brochures",
-      "Lead follow-up sequences from Meta ads",
-      "Channel-partner event invites",
-    ],
+    desc: "Track every enquiry from first call to booking.",
+    items: ["Leads from portals, ads, walk-ins and WhatsApp in one list", "Site-visit follow-ups scheduled per lead", "Pipeline by stage with deal values"],
+  },
+  {
+    tag: "Education",
+    title: "Institutes & coaching",
+    desc: "Turn enquiries into enrolments.",
+    items: ["Enquiry list with source and status", "Counselling calls as follow-ups", "Admissions tracked as deals"],
   },
   {
     tag: "D2C & retail",
     title: "Stores & e-commerce",
-    desc: "Recover carts, announce sales and confirm orders where customers read.",
-    items: [
-      "Order & delivery notifications",
-      "Festive offer campaigns",
-      "Abandoned-cart nudges",
-    ],
+    desc: "Keep customers and conversations connected.",
+    items: ["Customer list with tags and CSV import", "Offer campaigns and order updates on WhatsApp", "Shared inbox for support replies"],
   },
   {
     tag: "Agencies",
-    title: "Marketing agencies",
-    desc: "Run WhatsApp as a managed service for your clients under one roof.",
-    items: [
-      "Multi-client campaign management",
-      "Client-ready delivery reports",
-      "Team inbox with assignments",
-    ],
+    title: "Agencies & services",
+    desc: "Run your own sales and client work from one place.",
+    items: ["New-business pipeline with deal values", "Follow-ups and tasks in one list", "Client WhatsApp campaigns with delivery reports"],
   },
 ];
 
 export const faqs = [
   {
-    q: "Is this the official WhatsApp Business API?",
-    a: "Yes. ChatBoatAI runs entirely on the official Meta WhatsApp Business Platform. Your number gets a verified business profile, and there's no risk of the bans that come with unofficial bulk-sender tools.",
+    category: "general" as const,
+    q: "What is ChatBoatAI?",
+    a: "ChatBoatAI is a CRM for growing businesses: leads, contacts, deals, a sales pipeline, follow-ups and tasks in one dashboard, with WhatsApp built in as an integration. AI and more integrations are on our roadmap.",
   },
   {
-    q: "Do I need a new phone number?",
+    category: "general" as const,
+    q: "What's available today, and what's coming soon?",
+    a: "Available now: dashboard, leads, contacts, deals, sales pipeline, follow-ups, tasks and the WhatsApp integration. Coming soon: automation, detailed reports, AI features and integrations such as Gmail, Facebook Leads, Google, Google Calendar, Slack, Zapier and HubSpot. Anything not yet available is labelled “Coming soon” on this site and in the app.",
+  },
+  {
+    category: "general" as const,
+    q: "Do I need WhatsApp to use the CRM?",
+    a: "Leads, deals, the sales pipeline, follow-ups, tasks and the dashboard work without WhatsApp. The Contacts list currently requires a connected WhatsApp number; contacts without WhatsApp are coming soon.",
+  },
+  {
+    category: "whatsapp" as const,
+    q: "Is the WhatsApp integration official?",
+    a: "Yes. It runs on Meta's official WhatsApp Business Platform with a verified business profile — no unofficial tools. Meta's own messaging policies and quality ratings still apply to every number.",
+  },
+  {
+    category: "whatsapp" as const,
+    q: "Do I need a new phone number for WhatsApp?",
     a: "You can use a fresh number or migrate an existing WhatsApp Business number. A number connected to the API can't be used in the regular WhatsApp app at the same time, so most teams dedicate a number to it.",
   },
   {
+    category: "whatsapp" as const,
     q: "What are Meta conversation charges?",
-    a: "Meta charges a small per-conversation fee for messages sent via the API, based on category (marketing, utility, authentication). These are billed at Meta's actual rates with no markup from us — your plan fee only covers the platform.",
+    a: "Meta charges a small per-conversation fee for WhatsApp messages sent through the API, by category (marketing, utility, authentication). They're billed at Meta's rates with no markup — your plan covers the platform.",
   },
   {
-    q: "How fast do templates get approved?",
-    a: "Most templates are reviewed by Meta within minutes to a few hours. ChatBoatAI shows the live approval status of every template, and our team helps you fix rejected ones.",
+    category: "whatsapp" as const,
+    q: "How fast do WhatsApp templates get approved?",
+    a: "Meta reviews templates itself — often within minutes, though it can take longer. ChatBoatAI shows the live approval status of every template.",
   },
   {
-    q: "Can my whole team use one number?",
-    a: "Yes — that's the point of the shared inbox. Multiple teammates can read, reply to and assign conversations on the same WhatsApp number, with full history visible to everyone.",
+    category: "general" as const,
+    q: "Can my team use it?",
+    a: "Teammates can be invited to share your WhatsApp numbers and inbox today. Shared CRM workspaces (leads, deals and follow-ups visible to the whole team) are coming soon; right now CRM records are private to the account that created them.",
   },
   {
-    q: "Is there a free trial?",
-    a: "Every plan comes with a free trial. Connect your number, send real campaigns and see the analytics before you pay anything.",
+    category: "billing" as const,
+    q: "How do I get started?",
+    a: "Create an account, choose a plan and pay securely with Razorpay. Your plan activates as soon as the payment is verified, and you can start adding leads and connecting WhatsApp right away.",
   },
 ];
 
 export const trustPillars: { icon: LucideIcon; title: string; desc: string }[] = [
   {
-    icon: BadgeCheck,
-    title: "Official Meta WhatsApp API",
-    desc: "No grey-market gateways. Your messages go through Meta's Cloud API with a verified business profile.",
-  },
-  {
     icon: Lock,
     title: "Your data stays yours",
-    desc: "Contacts and conversations belong to your workspace. We don't sell audience data or resell your leads.",
+    desc: "Leads, deals, contacts and conversations belong to your workspace. We don't sell data or resell your leads.",
   },
   {
-    icon: Eye,
-    title: "Full delivery transparency",
-    desc: "See sent, delivered, read and failed in real time — so you always know what customers actually received.",
+    icon: Shield,
+    title: "Workspace isolation",
+    desc: "Every CRM record is tied to the account that owns it, and every request is checked against that owner.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Official WhatsApp integration",
+    desc: "WhatsApp messages go through Meta's Cloud API with a verified business profile — no grey-market gateways.",
   },
   {
     icon: Server,
     title: "Built for reliability",
-    desc: "Queue-backed sending, Meta rate-limit awareness, and campaign reports you can share with stakeholders.",
+    desc: "WhatsApp messages go through Meta's official Cloud API, and payments are processed by Razorpay.",
   },
 ];
 
+/**
+ * OWNER REVIEW: set to true only after confirming these are real customers
+ * who agreed to be quoted. While false, no testimonial is shown anywhere.
+ */
+export const TESTIMONIALS_VERIFIED = false;
+
+/**
+ * Existing customer quotes, kept word for word. They describe the WhatsApp
+ * side of the product; don't rewrite them into CRM claims.
+ */
 export const testimonials = [
   {
     quote:
@@ -259,29 +385,48 @@ export const testimonials = [
 
 export const guarantees: { icon: LucideIcon; title: string; desc: string }[] = [
   {
-    icon: Shield,
-    title: "No unofficial tools",
-    desc: "We never use banned multi-device or scraped WhatsApp clients. Ban risk stays with unofficial tools — not us.",
+    icon: Eye,
+    title: "No over-promising",
+    desc: "Features that aren't built yet are labelled “Coming soon” — on this site and inside the app.",
   },
   {
     icon: Clock,
-    title: "Try before you pay",
-    desc: "Free trial on every plan. Connect your number, send real campaigns, then decide.",
+    title: "Clear monthly pricing",
+    desc: "Prices are shown up front. You pay securely through Razorpay, and your plan activates as soon as the payment is verified.",
   },
   {
     icon: Headphones,
     title: "Humans when you need them",
-    desc: "WhatsApp and call support for setup, template fixes, and campaign questions — not just a chatbot.",
+    desc: "Phone and email support for setup, WhatsApp templates and billing questions.",
   },
 ];
 
-export const MARKETING_NAV = [
+/** Kept for any legacy imports; the Features page now uses CRM_MODULES. */
+export const features = CRM_MODULES.filter((m) => m.status === "live").map((m) => ({
+  icon: m.icon,
+  title: m.name,
+  desc: m.summary,
+}));
+
+
+/**
+ * Top navigation for the CRM-first site. `/#…` entries are sections on the
+ * home page (plain anchors, so they work from any page).
+ */
+export const PRIMARY_NAV = [
+  { href: "/crm", label: "CRM" },
+  { href: "/#ai", label: "AI Tools" },
+  { href: "/#whatsapp", label: "WhatsApp" },
   { href: "/features", label: "Features" },
-  { href: "/trust", label: "Trust" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/setup-guide", label: "Setup Guide" },
-  { href: "/use-cases", label: "Use Cases" },
-  { href: "/proof", label: "Proof" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/faq", label: "FAQ" },
+  { href: "/integrations", label: "Integrations" },
 ] as const;
+
+export const RESOURCES_NAV = [
+  { href: "/how-it-works", label: "How It Works", desc: "From first lead to closed deal" },
+  { href: "/setup-guide", label: "Setup Guide", desc: "Connect your channels step by step" },
+  { href: "/faq", label: "FAQ", desc: "Answers to common questions" },
+  { href: "/trust", label: "Trust & Security", desc: "How we protect your data" },
+  { href: "/proof", label: "Our Commitments", desc: "What you can expect from us" },
+] as const;
+

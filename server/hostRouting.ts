@@ -5,6 +5,19 @@
  * deployments keep working as a single origin.
  */
 import type { Express, RequestHandler } from "express";
+import { normalizePrimaryDomain } from "@shared/primaryDomain";
+
+/**
+ * The root domain the app is split across, or undefined when the split is
+ * disabled. VITE_PRIMARY_DOMAIN is accepted as a fallback because the client
+ * bundle already redirects between hosts whenever it is set — if only that
+ * one were configured, the server would otherwise ignore the split (no host
+ * redirects, host-only session cookie) and every login would bounce between
+ * the two hosts.
+ */
+export function getPrimaryDomain(): string | undefined {
+  return normalizePrimaryDomain(process.env.PRIMARY_DOMAIN || process.env.VITE_PRIMARY_DOMAIN);
+}
 
 const APP_ONLY_PREFIXES = [
   "/dashboard",
@@ -16,6 +29,15 @@ const APP_ONLY_PREFIXES = [
   "/analytics",
   "/settings",
   "/billing",
+  "/leads",
+  "/deals",
+  "/pipeline",
+  "/follow-ups",
+  "/tasks",
+  "/automation",
+  "/reports",
+  "/connected-apps",
+  "/whatsapp",
   "/admin",
 ];
 
@@ -31,8 +53,12 @@ const ROOT_ONLY_PATHS = new Set([
   "/proof",
   "/pricing",
   "/faq",
+  "/crm",
+  "/integrations",
   "/login",
   "/admin-login",
+  "/forgot-password",
+  "/reset-password",
 ]);
 
 function isAppOnlyPath(path: string): boolean {
@@ -40,7 +66,7 @@ function isAppOnlyPath(path: string): boolean {
 }
 
 export function registerHostRouting(app: Express) {
-  const primaryDomain = process.env.PRIMARY_DOMAIN;
+  const primaryDomain = getPrimaryDomain();
   if (!primaryDomain) return;
 
   const rootHost = primaryDomain;

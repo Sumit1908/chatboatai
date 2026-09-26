@@ -15,7 +15,18 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CreditCard, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AlertTriangle, Check, CheckCircle2, CreditCard, Eye, Plus, Pencil, Trash2, XCircle } from "lucide-react";
+import type { PlanCheckoutStatus } from "@shared/billingPlans";
 
 export interface AdminBillingPlan {
   id: string;
@@ -35,6 +46,10 @@ export interface AdminBillingPlan {
   maxTemplates: number | null;
   maxTeamSeats: number | null;
   active?: boolean;
+  /** Linked Razorpay plan (null until the first checkout creates it). */
+  razorpayPlanId?: string | null;
+  /** Whether customers can buy it right now, and why not. */
+  checkout?: PlanCheckoutStatus;
 }
 
 type PlanFormState = {
@@ -58,7 +73,7 @@ const emptyForm = (): PlanFormState => ({
   name: "",
   slug: "",
   tagline: "",
-  amountInr: "1999",
+  amountInr: "",
   featured: false,
   active: true,
   razorpayEnabled: true,
@@ -130,8 +145,10 @@ export function AdminPlansPanel() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminBillingPlan | null>(null);
   const [form, setForm] = useState<PlanFormState>(emptyForm());
+  // Plan waiting for the "Hide from website?" confirmation.
+  const [hiding, setHiding] = useState<AdminBillingPlan | null>(null);
 
-  const { data, isLoading } = useQuery<{ plans: AdminBillingPlan[] }>({
+  const { data, isLoading, error } = useQuery<{ plans: AdminBillingPlan[] }>({
     queryKey: ["/api/admin/plans"],
   });
 
@@ -181,7 +198,8 @@ export function AdminPlansPanel() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
-      toast({ title: "Plan deactivated" });
+      toast({ title: "Plan hidden from the website" });
+      setHiding(null);
     },
     onError: (error: Error) => {
       toast({
@@ -192,11 +210,31 @@ export function AdminPlansPanel() {
     },
   });
 
+  const showMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PATCH", `/api/admin/plans/${id}`, { active: true });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
+      toast({ title: "Plan is visible on the website again" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Could not show plan",
+        description: error.message?.replace(/^\d+:\s*/, "") || "Try again",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold text-[#14205a]">Billing plans</h2>
+          <h2 className="text-xl font-semibold text-[#14205a]">Pricing Plans</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Plans appear on the website pricing pages and in the user billing dashboard.
           </p>
@@ -216,6 +254,12 @@ export function AdminPlansPanel() {
       {isLoading ? (
         <Card>
           <CardContent className="py-10 text-sm text-muted-foreground">Loading plans…</CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="py-10 text-sm text-destructive" data-testid="text-plans-error">
+            Could not load plans: {(error as Error).message.replace(/^\d+:\s*/, "")}
+          </CardContent>
         </Card>
       ) : plans.length === 0 ? (
         <Card>
@@ -249,6 +293,24 @@ export function AdminPlansPanel() {
                   <div className="text-2xl font-bold text-[#14205a]">{plan.priceLabel}</div>
                   <p className="text-sm text-muted-foreground mt-1">{plan.tagline}</p>
                 </div>
+                {/* Feature list exactly as customers see it on the pricing and billing pages. */}
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Customers see
+                  </p>
+                  {plan.features.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">No features listed</p>
+                  ) : (
+                    <ul className="space-y-1.5" data-testid={`plan-features-${plan.slug}`}>
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#14B8A6]" aria-hidden />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>Contacts: {formatLimit(plan.maxContacts)}</li>
                   <li>Messages/subscription: {formatLimit(plan.maxMessagesPerDay)}</li>
@@ -256,7 +318,50 @@ export function AdminPlansPanel() {
                   <li>Templates: {formatLimit(plan.maxTemplates)}</li>
                   <li>Team seats: {formatLimit(plan.maxTeamSeats)}</li>
                 </ul>
-                <div className="flex gap-2">
+                {/* Checkout status - same rules as real checkout (server-computed). */}
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5 text-xs" data-testid={`plan-checkout-${plan.slug}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">Razorpay checkout</span>
+                    <span className={plan.razorpayEnabled ? "font-medium text-emerald-700" : "font-medium text-muted-foreground"}>
+                      {plan.razorpayEnabled ? "On" : "Off"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground shrink-0">Razorpay plan</span>
+                    {plan.razorpayPlanId ? (
+                      <span className="font-mono text-[11px] text-foreground truncate" title={plan.razorpayPlanId}>
+                        Linked · {plan.razorpayPlanId}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-right">Not linked yet — created on first checkout</span>
+                    )}
+                  </div>
+                  {plan.checkout && (
+                    <div className="border-t pt-1.5 mt-1.5">
+                      <p
+                        className={`flex items-center gap-1.5 text-sm font-semibold ${
+                          plan.checkout.canBuy ? "text-emerald-700" : "text-destructive"
+                        }`}
+                        data-testid={`plan-can-buy-${plan.slug}`}
+                      >
+                        {plan.checkout.canBuy ? (
+                          <CheckCircle2 className="h-4 w-4" aria-hidden />
+                        ) : (
+                          <XCircle className="h-4 w-4" aria-hidden />
+                        )}
+                        Customers can buy this: {plan.checkout.canBuy ? "Yes" : "No"}
+                      </p>
+                      {!plan.checkout.canBuy && (
+                        <ul className="mt-1 space-y-0.5 pl-5 list-disc text-muted-foreground">
+                          {plan.checkout.reasons.map((reason) => (
+                            <li key={reason}>{reason}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -269,16 +374,29 @@ export function AdminPlansPanel() {
                     <Pencil className="h-3.5 w-3.5" />
                     Edit
                   </Button>
-                  {plan.active !== false && (
+                  {plan.active !== false ? (
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-1.5 text-destructive"
-                      onClick={() => deactivateMutation.mutate(plan.id)}
+                      onClick={() => setHiding(plan)}
                       disabled={deactivateMutation.isPending}
+                      data-testid={`button-hide-${plan.slug}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Hide
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => showMutation.mutate(plan.id)}
+                      disabled={showMutation.isPending}
+                      data-testid={`button-show-${plan.slug}`}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Show on website
                     </Button>
                   )}
                 </div>
@@ -332,6 +450,7 @@ export function AdminPlansPanel() {
                   min={1}
                   value={form.amountInr}
                   onChange={(e) => setForm((f) => ({ ...f, amountInr: e.target.value }))}
+                  aria-describedby={editing ? "plan-amount-note" : undefined}
                 />
               </div>
               <div className="space-y-2">
@@ -344,6 +463,23 @@ export function AdminPlansPanel() {
                 />
               </div>
             </div>
+            {editing && (
+              <p
+                id="plan-amount-note"
+                role="note"
+                data-testid="text-price-change-note"
+                className={`flex items-start gap-2 rounded-md border p-2.5 text-xs ${
+                  Math.round(Number(form.amountInr)) !== editing.amountInr
+                    ? "border-amber-300 bg-amber-50 text-amber-900"
+                    : "border-transparent bg-muted/40 text-muted-foreground"
+                }`}
+              >
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span>
+                  Price changes apply to new checkouts only. Existing subscribers keep their current price.
+                </span>
+              </p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="plan-features">Features (one per line)</Label>
               <Textarea
@@ -411,6 +547,32 @@ export function AdminPlansPanel() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!hiding} onOpenChange={(isOpen) => !isOpen && setHiding(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hide “{hiding?.name}” from the website?</AlertDialogTitle>
+            <AlertDialogDescription>
+              New customers won&apos;t see or be able to buy this plan. Existing subscribers keep their plan and
+              price. You can show it again at any time with “Show on website”.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deactivateMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (hiding) deactivateMutation.mutate(hiding.id);
+              }}
+              data-testid="button-confirm-hide"
+            >
+              Hide plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

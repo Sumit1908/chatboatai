@@ -20,6 +20,47 @@ import type { ContactList, ContactTag, Contact } from "@shared/schema";
 
 type ImportStep = 1 | 2 | 3;
 
+/** Splits one CSV line into fields, honoring double-quoted fields that may
+ * themselves contain commas or escaped ("") quotes - a plain line.split(",")
+ * silently corrupts any row where a name/address field contains a comma
+ * (e.g. "Doe, John"), which is common in spreadsheet exports. */
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      fields.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+/** Same quoting convention as the CSV export elsewhere in the app (see
+ * messages.tsx's escapeCsv) - wraps every field so exported commas/quotes
+ * round-trip correctly instead of corrupting the file's column count. */
+function escapeCsv(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 export default function ContactsImport() {
   const [step, setStep] = useState<ImportStep>(1);
   const [selectedList, setSelectedList] = useState<string>("");
@@ -84,7 +125,11 @@ export default function ContactsImport() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type === "text/csv") {
+    // Browsers/OS report inconsistent MIME types for CSV (empty string, or
+    // application/vnd.ms-excel for spreadsheet-app exports) - matching the
+    // file extension too avoids silently dropping a valid dragged CSV with
+    // no feedback to the user, same acceptance the file-picker input allows.
+    if (droppedFile && (droppedFile.type === "text/csv" || droppedFile.name.toLowerCase().endsWith(".csv"))) {
       setFile(droppedFile);
       parseCSV(droppedFile);
     }
@@ -96,23 +141,23 @@ export default function ContactsImport() {
       const text = e.target?.result as string;
       const lines = text.split("\n").filter(line => line.trim());
       if (lines.length > 0) {
-        const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
+        const headers = parseCsvLine(lines[0]);
         setCsvHeaders(headers);
-        
-        const phoneIndex = headers.findIndex(h => 
+
+        const phoneIndex = headers.findIndex(h =>
           h.toLowerCase().includes("phone") || h.toLowerCase().includes("mobile") || h.toLowerCase().includes("number")
         );
-        const nameIndex = headers.findIndex(h => 
+        const nameIndex = headers.findIndex(h =>
           h.toLowerCase().includes("name")
         );
-        
+
         setFieldMapping({
           phone: phoneIndex >= 0 ? phoneIndex : 0,
           name: nameIndex >= 0 ? nameIndex : 1,
         });
 
         const contacts = lines.slice(1).map(line => {
-          const values = line.split(",").map(v => v.trim().replace(/"/g, ""));
+          const values = parseCsvLine(line);
           return {
             phone: values[phoneIndex >= 0 ? phoneIndex : 0] || "",
             name: values[nameIndex >= 0 ? nameIndex : 1] || undefined,
@@ -148,7 +193,7 @@ export default function ContactsImport() {
     const csv = [
       ["Phone", "Name", "Status"],
       ...contactsToExport.map((c) => [c.phone, c.name || "", c.status]),
-    ].map((row) => row.join(",")).join("\n");
+    ].map((row) => row.map((v) => escapeCsv(String(v))).join(",")).join("\n");
     
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);

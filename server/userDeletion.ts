@@ -18,6 +18,9 @@ import {
   teamMembers,
   uploadedFiles,
   billingPayments,
+  crmLeads,
+  crmDeals,
+  crmTasks,
 } from "@shared/schema";
 import { storage } from "./storage";
 import * as objectStorage from "./objectStorage";
@@ -110,6 +113,12 @@ export async function deleteAllUserData(userId: string): Promise<UserDeletionRes
       or(eq(teamMembers.ownerUserId, userId), eq(teamMembers.memberUserId, userId)),
     );
   }
+
+  // CRM records belong to the user's workspace (owner_user_id), not a
+  // WhatsApp account, so they are not covered by the account loop above.
+  await db.delete(crmTasks).where(eq(crmTasks.ownerUserId, userId));
+  await db.delete(crmDeals).where(eq(crmDeals.ownerUserId, userId));
+  await db.delete(crmLeads).where(eq(crmLeads.ownerUserId, userId));
 
   await db.delete(billingPayments).where(eq(billingPayments.userId, userId));
   await db.delete(pageViews).where(eq(pageViews.userId, userId));

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,11 +10,18 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { Phone, ArrowRight, Menu } from "lucide-react";
+import { Phone, ArrowRight, Menu, LayoutDashboard } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
-import { HELP_NUMBER, MARKETING_NAV, WA, EMAIL_INFO, EMAIL_SUPPORT } from "@/lib/marketing-content";
+import {
+  HELP_NUMBER,
+  PRIMARY_NAV,
+  RESOURCES_NAV,
+  EMAIL_INFO,
+  EMAIL_SUPPORT,
+} from "@/lib/marketing-content";
 import { ContentSeo } from "@/components/seo-head";
 import { SocialShare } from "@/components/social-share";
+import { BrandLogo, CRM, accentButton } from "@/components/crm/brand";
 
 /** Section padding — tighter on mobile, unchanged from md/lg up */
 export const sectionPad = "py-16 md:py-20 lg:py-24 px-4";
@@ -43,12 +50,13 @@ export function FadeIn({
   );
 }
 
+/** WhatsApp glyph — for WhatsApp-specific content only (not the brand logo). */
 export function WaMark({ className = "h-9 w-9" }: { className?: string }) {
   return (
     <div
       className={`flex items-center justify-center rounded-full bg-[#25D366] text-white shadow-md shadow-[#25D366]/30 ${className}`}
       role="img"
-      aria-label="ChatBoatAI WhatsApp logo"
+      aria-label="WhatsApp"
     >
       <FaWhatsapp className="h-[58%] w-[58%]" aria-hidden />
     </div>
@@ -56,38 +64,45 @@ export function WaMark({ className = "h-9 w-9" }: { className?: string }) {
 }
 
 export function MarketingCta({
-  title = "Ready to launch on WhatsApp?",
-  subtitle = "Start your free trial, connect your number, and send your first campaign this week.",
+  title = "Run your whole business from one dashboard",
+  subtitle = "Choose a plan, pay securely with Razorpay and bring in your leads, pipeline and channels this week.",
   dark = false,
+  ctaLabel = "Get Started",
 }: {
   title?: string;
   subtitle?: string;
   dark?: boolean;
+  ctaLabel?: string;
 }) {
   return (
     <div
       className={`rounded-3xl border px-4 sm:px-6 md:px-12 py-10 sm:py-14 text-center relative overflow-hidden ${
         dark
-          ? "border-[#25D366]/40 bg-[#075E54] text-white"
-          : "border-[#25D366]/30 bg-white/90 text-[#075E54]"
+          ? "border-white/10 bg-gradient-to-br from-[#063F3A] via-[#0B6E66] to-[#0E8C7F] text-white"
+          : "border-[#0E8C7F]/20 bg-white/90 text-[#04322E]"
       }`}
     >
       {dark && (
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_80%_at_50%_100%,rgba(37,211,102,0.35),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_80%_at_50%_100%,rgba(94,234,212,0.3),transparent)]" />
       )}
       <div className="relative">
-        <FaWhatsapp className={`h-10 w-10 mx-auto mb-4 ${dark ? "text-[#25D366]" : "text-[#25D366]"}`} />
+        <span
+          className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${
+            dark ? "bg-white/10 text-[#86EFAC]" : "bg-teal-50 text-[#0E8C7F]"
+          }`}
+        >
+          <LayoutDashboard className="h-6 w-6" aria-hidden />
+        </span>
         <h2 className="text-2xl md:text-3xl font-heading font-bold mb-3">{title}</h2>
-        <p className={`text-sm md:text-base mb-8 max-w-lg mx-auto ${dark ? "text-white/70" : "text-[#075E54]/60"}`}>
+        <p className={`text-sm md:text-base mb-8 max-w-lg mx-auto ${dark ? "text-teal-50/75" : "text-[#04322E]/60"}`}>
           {subtitle}
         </p>
-        <a href="/login" className="inline-block w-full sm:w-auto">
-          <Button
-            size="lg"
-            className="w-full sm:w-auto gap-2 bg-[#25D366] text-white font-semibold hover:bg-[#20bd5a] shadow-lg shadow-[#25D366]/30"
-          >
-            <FaWhatsapp className="h-5 w-5" /> Start Free Trial <ArrowRight className="h-4 w-4" />
-          </Button>
+        <a
+          href="/login?mode=register"
+          className={`inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-7 ${accentButton}`}
+          data-testid="button-cta-get-started"
+        >
+          {ctaLabel} <ArrowRight className="h-4 w-4" aria-hidden />
         </a>
       </div>
     </div>
@@ -109,27 +124,34 @@ export function PageHero({
     <FadeIn>
       <div className={`max-w-3xl ${centered ? "mx-auto text-center" : ""} mb-4`}>
         {eyebrow && (
-          <p className="text-[#25D366] text-sm font-medium tracking-wide uppercase mb-3 flex items-center gap-2 justify-center md:justify-start">
-            <FaWhatsapp className="h-4 w-4" /> {eyebrow}
+          <p className="inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#0E8C7F] ring-1 ring-teal-100 mb-4">
+            {eyebrow}
           </p>
         )}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-[#075E54] mb-4 leading-tight">{title}</h1>
-        {subtitle && <p className="text-base sm:text-lg text-[#075E54]/60 leading-relaxed">{subtitle}</p>}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-[#04322E] mb-4 leading-tight">{title}</h1>
+        {subtitle && <p className="text-base sm:text-lg text-[#04322E]/60 leading-relaxed">{subtitle}</p>}
       </div>
     </FadeIn>
   );
 }
 
-function MarketingHelpBar() {
+function MarketingHelpBar({ dark = false }: { dark?: boolean }) {
   return (
-    <div className="border-b border-[#075E54]/10 bg-white/70 backdrop-blur-md">
-      <div className="text-center text-xs sm:text-sm py-2 px-3 sm:px-4 text-[#075E54]/75 leading-snug">
-        <FaWhatsapp className="inline h-3.5 w-3.5 mr-1 -mt-0.5 text-[#25D366]" />
-        <span className="hidden sm:inline">Need help? </span>
-        Call{" "}
+    <div
+      className={
+        dark
+          ? "relative z-[60] border-b border-white/10 bg-[#04322E] text-teal-50/80"
+          : "border-b border-[#04322E]/10 bg-white/70 backdrop-blur-md text-[#04322E]/75"
+      }
+    >
+      <div className="text-center text-xs sm:text-sm py-2 px-3 sm:px-4 leading-snug">
+        <Phone className={`inline h-3.5 w-3.5 mr-1.5 -mt-0.5 ${dark ? "text-[#5EEAD4]" : "text-[#0E8C7F]"}`} aria-hidden />
+        <span className="hidden sm:inline">Talk to our team: </span>
         <a
           href={`tel:+91${HELP_NUMBER}`}
-          className="font-semibold text-[#075E54] underline underline-offset-2 decoration-[#25D366]/70 whitespace-nowrap"
+          className={`font-semibold underline underline-offset-2 whitespace-nowrap ${
+            dark ? "text-white decoration-[#5EEAD4]/60" : "text-[#04322E] decoration-[#0E8C7F]/60"
+          }`}
         >
           +91 {HELP_NUMBER}
         </a>
@@ -138,86 +160,164 @@ function MarketingHelpBar() {
   );
 }
 
-export function MarketingHeader() {
+/**
+ * Site header. `overlay` renders it transparent with white text over a dark
+ * hero (home page) until the visitor scrolls, then it turns solid white.
+ */
+export function MarketingHeader({ overlay = false }: { overlay?: boolean }) {
   return (
     <>
-      <MarketingHelpBar />
+      <MarketingHelpBar dark={overlay} />
       <div className="sticky top-0 z-50">
-        <MarketingNav />
+        <MarketingNav overlay={overlay} />
       </div>
     </>
   );
 }
 
-function MarketingNav() {
+function useScrolled(threshold = 12) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > threshold);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [threshold]);
+  return scrolled;
+}
+
+function isActive(location: string, href: string) {
+  return !href.includes("#") && (location === href || location.startsWith(`${href}/`));
+}
+
+/** `/#section` links are plain anchors so they scroll natively (and work cross-page). */
+function NavLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  if (href.includes("#")) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function MarketingNav({ overlay }: { overlay: boolean }) {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const scrolled = useScrolled();
+  const onDark = overlay && !scrolled;
+
+  const linkClass = (active: boolean) =>
+    `relative text-sm font-medium transition-colors duration-200 after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:rounded-full after:transition-all after:duration-200 ${
+      onDark
+        ? `after:bg-[#5EEAD4] ${active ? "text-white after:w-full" : "text-white/75 hover:text-white after:w-0 hover:after:w-full"}`
+        : `after:bg-[#0E8C7F] ${active ? "text-[#04322E] after:w-full" : "text-[#04322E]/65 hover:text-[#04322E] after:w-0 hover:after:w-full"}`
+    }`;
 
   return (
-    <nav className="border-b border-[#075E54]/10 bg-white/90 backdrop-blur-xl">
-      <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between gap-2 px-3 sm:px-4 max-w-6xl">
-        <Link href="/">
-          <div className="flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0">
-            <WaMark className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" />
-            <span className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[#075E54] truncate">
-              ChatBoatAI
-            </span>
-          </div>
+    <nav
+      className={`transition-colors duration-300 ${
+        onDark
+          ? "border-b border-transparent bg-transparent"
+          : "border-b border-[#04322E]/10 bg-white/90 backdrop-blur-xl shadow-[0_1px_0_rgba(4,50,46,0.02)]"
+      }`}
+    >
+      <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between gap-2 px-3 sm:px-4 max-w-[1320px]">
+        <Link href="/" aria-label="ChatBoatAI home">
+          <BrandLogo tone={onDark ? "light" : "dark"} className="cursor-pointer" />
         </Link>
-        <div className="hidden xl:flex items-center gap-5">
-          {MARKETING_NAV.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              title={`${label} — ChatBoatAI WhatsApp Business API`}
-              className={`text-sm font-medium transition-colors ${
-                location === href ? "text-[#075E54]" : "text-[#075E54]/60 hover:text-[#075E54]"
-              }`}
-            >
+
+        <div className="hidden lg:flex items-center gap-6 xl:gap-7">
+          {PRIMARY_NAV.map(({ href, label }) => (
+            <NavLink key={href} href={href} className={linkClass(isActive(location, href))}>
               {label}
-            </Link>
+            </NavLink>
           ))}
         </div>
+
         <div className="flex items-center gap-1.5 sm:gap-3">
-          <a href="/login" className="hidden sm:block">
-            <Button variant="ghost" size="sm" className="text-[#075E54] hover:bg-[#25D366]/10">
-              Log In
-            </Button>
+          <a
+            href="/login"
+            data-testid="nav-login"
+            className={`hidden sm:inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold transition-colors ${
+              onDark ? "text-white hover:bg-white/10" : "text-[#04322E] hover:bg-teal-50"
+            }`}
+          >
+            Login
           </a>
-          <a href="/login" className="hidden sm:block">
-            <Button size="sm" className="bg-[#25D366] text-white hover:bg-[#20bd5a] shadow-md shadow-[#25D366]/25 gap-1.5">
-              <FaWhatsapp className="h-4 w-4" /> Get Started
-            </Button>
+          <a
+            href="/login?mode=register"
+            className={`hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-sm ${accentButton}`}
+            data-testid="nav-get-started"
+          >
+            Get Started <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </a>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="outline"
                 size="icon"
-                className="xl:hidden shrink-0 border-[#075E54]/15 text-[#075E54] h-9 w-9"
+                className={`lg:hidden shrink-0 h-9 w-9 ${
+                  onDark
+                    ? "border-white/30 bg-white/5 text-white hover:bg-white/15 hover:text-white"
+                    : "border-[#04322E]/15 text-[#04322E]"
+                }`}
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[min(100vw-2rem,320px)] p-0 flex flex-col">
-              <SheetHeader className="border-b border-[#075E54]/10 px-5 py-4 text-left">
-                <SheetTitle className="flex items-center gap-2 text-[#075E54]">
-                  <WaMark className="h-8 w-8" />
-                  <span className="font-heading font-bold">ChatBoatAI</span>
+              <SheetHeader className="border-b border-[#04322E]/10 px-5 py-4 text-left">
+                <SheetTitle>
+                  <BrandLogo />
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex-1 overflow-y-auto px-3 py-4">
                 <ul className="space-y-1">
-                  {MARKETING_NAV.map(({ href, label }) => (
+                  {PRIMARY_NAV.map(({ href, label }) => (
+                    <li key={href}>
+                      <SheetClose asChild>
+                        <NavLink
+                          href={href}
+                          className={`flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
+                            isActive(location, href)
+                              ? "bg-teal-50 text-[#04322E]"
+                              : "text-[#04322E]/70 hover:bg-[#04322E]/5 hover:text-[#04322E]"
+                          }`}
+                        >
+                          {label}
+                        </NavLink>
+                      </SheetClose>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-[#04322E]/40">
+                  Resources
+                </p>
+                <ul className="space-y-1">
+                  {RESOURCES_NAV.map(({ href, label }) => (
                     <li key={href}>
                       <SheetClose asChild>
                         <Link
                           href={href}
-                          className={`flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
-                            location === href
-                              ? "bg-[#25D366]/12 text-[#075E54]"
-                              : "text-[#075E54]/70 hover:bg-[#075E54]/5 hover:text-[#075E54]"
+                          className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                            isActive(location, href)
+                              ? "bg-teal-50 text-[#04322E]"
+                              : "text-[#04322E]/70 hover:bg-[#04322E]/5 hover:text-[#04322E]"
                           }`}
                         >
                           {label}
@@ -227,19 +327,20 @@ function MarketingNav() {
                   ))}
                 </ul>
               </nav>
-              <div className="border-t border-[#075E54]/10 p-4 space-y-2">
+              <div className="border-t border-[#04322E]/10 p-4 space-y-2">
                 <SheetClose asChild>
-                  <a href={"/login"} className="block">
-                    <Button variant="outline" className="w-full border-[#075E54]/15 text-[#075E54]">
-                      Log In
+                  <a href="/login" className="block">
+                    <Button variant="outline" className="w-full border-[#04322E]/15 text-[#04322E]">
+                      Login
                     </Button>
                   </a>
                 </SheetClose>
                 <SheetClose asChild>
-                  <a href={"/login"} className="block">
-                    <Button className="w-full bg-[#25D366] text-white hover:bg-[#20bd5a] gap-2">
-                      <FaWhatsapp className="h-4 w-4" /> Get Started
-                    </Button>
+                  <a
+                    href="/login?mode=register"
+                    className={`flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm ${accentButton}`}
+                  >
+                    Get Started <ArrowRight className="h-4 w-4" aria-hidden />
                   </a>
                 </SheetClose>
               </div>
@@ -251,80 +352,92 @@ function MarketingNav() {
   );
 }
 
-function MarketingFooter() {
+export function MarketingFooter() {
   return (
-    <footer className="border-t border-[#075E54]/10 py-10 sm:py-12 px-4 bg-white/70">
+    <footer className="border-t border-[#04322E]/10 py-10 sm:py-12 px-4 bg-white/70">
       <div className="container mx-auto max-w-6xl">
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="col-span-2 sm:col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <WaMark className="h-8 w-8" />
-              <span className="font-heading font-bold text-[#075E54]">ChatBoatAI</span>
-            </div>
-            <p className="text-sm text-[#075E54]/50">
-              The WhatsApp Business API platform for teams that sell in conversations.
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
+          <div className="col-span-2 md:col-span-1">
+            <BrandLogo className="mb-4" />
+            <p className="text-sm text-[#04322E]/55">
+              CRM for leads, deals, follow-ups and tasks — with WhatsApp Business built in and AI tools on the way.
             </p>
           </div>
           <div>
-            <p className="font-semibold mb-4 text-[#075E54] text-sm">Product</p>
-            <ul className="space-y-2 text-sm text-[#075E54]/50">
-              {MARKETING_NAV.map(({ href, label }) => (
+            <p className="font-semibold mb-4 text-[#04322E] text-sm">Product</p>
+            <ul className="space-y-2 text-sm text-[#04322E]/55">
+              {PRIMARY_NAV.map(({ href, label }) => (
                 <li key={href}>
-                  <Link href={href} title={`${label} — ChatBoatAI`} className="hover:text-[#075E54]">
+                  <NavLink href={href} className="hover:text-[#04322E]">
                     {label}
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <p className="font-semibold mb-4 text-[#075E54] text-sm">Legal</p>
-            <ul className="space-y-2 text-sm text-[#075E54]/50">
-              <li><Link href="/privacy" title="ChatBoatAI Privacy Policy" className="hover:text-[#075E54]">Privacy Policy</Link></li>
-              <li><Link href="/terms" title="ChatBoatAI Terms of Service" className="hover:text-[#075E54]">Terms of Service</Link></li>
-              <li><Link href="/refund" title="ChatBoatAI Refund Policy" className="hover:text-[#075E54]">Refund Policy</Link></li>
-              <li><Link href="/delete-data" title="Request user data deletion" className="hover:text-[#075E54]">Data Deletion</Link></li>
+            <p className="font-semibold mb-4 text-[#04322E] text-sm">Resources</p>
+            <ul className="space-y-2 text-sm text-[#04322E]/55">
+              {RESOURCES_NAV.map(({ href, label }) => (
+                <li key={href}>
+                  <Link href={href} className="hover:text-[#04322E]">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+              <li><Link href="/use-cases" className="hover:text-[#04322E]">Use Cases</Link></li>
             </ul>
           </div>
           <div>
-            <p className="font-semibold mb-4 text-[#075E54] text-sm">Support</p>
-            <ul className="space-y-2 text-sm text-[#075E54]/50">
-              <li><Link href="/contact" className="hover:text-[#075E54]">Contact Us</Link></li>
+            <p className="font-semibold mb-4 text-[#04322E] text-sm">Company</p>
+            <ul className="space-y-2 text-sm text-[#04322E]/55">
+              <li><Link href="/contact" className="hover:text-[#04322E]">Contact</Link></li>
+              <li><a href="/login" className="hover:text-[#04322E]">Login</a></li>
+              <li><a href="/login?mode=register" className="hover:text-[#04322E]">Get Started</a></li>
               <li>
-                <a href={`tel:+91${HELP_NUMBER}`} className="hover:text-[#075E54] flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5 text-[#25D366]" /> +91 {HELP_NUMBER}
+                <a href={`tel:+91${HELP_NUMBER}`} className="hover:text-[#04322E] flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 text-[#0E8C7F]" /> +91 {HELP_NUMBER}
                 </a>
               </li>
               <li>
-                <a href={`mailto:${EMAIL_INFO}`} className="hover:text-[#075E54]">
+                <a href={`mailto:${EMAIL_INFO}`} className="hover:text-[#04322E] break-all">
                   {EMAIL_INFO}
                 </a>
               </li>
-              <li>
-                <a href={`mailto:${EMAIL_SUPPORT}`} className="hover:text-[#075E54]">
-                  {EMAIL_SUPPORT}
-                </a>
-              </li>
+              {EMAIL_SUPPORT !== EMAIL_INFO && (
+                <li>
+                  <a href={`mailto:${EMAIL_SUPPORT}`} className="hover:text-[#04322E] break-all">
+                    {EMAIL_SUPPORT}
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold mb-4 text-[#04322E] text-sm">Legal</p>
+            <ul className="space-y-2 text-sm text-[#04322E]/55">
+              <li><Link href="/terms" title="ChatBoatAI Terms of Service" className="hover:text-[#04322E]">Terms of Service</Link></li>
+              <li><Link href="/privacy" title="ChatBoatAI Privacy Policy" className="hover:text-[#04322E]">Privacy Policy</Link></li>
+              <li><Link href="/refund" title="ChatBoatAI Refund Policy" className="hover:text-[#04322E]">Refund Policy</Link></li>
+              <li><Link href="/delete-data" title="Request user data deletion" className="hover:text-[#04322E]">Data Deletion</Link></li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-[#075E54]/10 mt-8 pt-8 flex flex-col gap-4">
+        <div className="border-t border-[#04322E]/10 mt-8 pt-8 flex flex-col gap-4">
           <SocialShare />
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-[#075E54]/40 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-[#04322E]/45 text-center sm:text-left">
             <p>&copy; {new Date().getFullYear()} ChatBoatAI. All rights reserved.</p>
-            <p className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 max-w-md sm:max-w-none">
-              <span className="inline-flex items-center gap-1.5">
-                <FaWhatsapp className="h-3.5 w-3.5 text-[#25D366]" /> Built on the official{" "}
-                <a
-                  href="https://developers.facebook.com/docs/whatsapp/cloud-api"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Meta WhatsApp Cloud API documentation"
-                  className="underline underline-offset-2 hover:text-[#075E54]"
-                >
-                  Meta WhatsApp Business Platform
-                </a>
-              </span>
+            <p className="inline-flex items-center gap-1.5">
+              <FaWhatsapp className="h-3.5 w-3.5 text-[#25D366]" aria-hidden /> WhatsApp integration built on the official{" "}
+              <a
+                href="https://developers.facebook.com/docs/whatsapp/cloud-api"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Meta WhatsApp Cloud API documentation"
+                className="underline underline-offset-2 hover:text-[#04322E]"
+              >
+                Meta Business Platform
+              </a>
             </p>
           </div>
         </div>
@@ -338,15 +451,15 @@ export function MarketingLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="relative min-h-screen text-[#075E54] selection:bg-[#25D366]/30"
-      style={{ backgroundColor: WA.mist }}
+      className="relative min-h-screen text-[#04322E] selection:bg-teal-200/60"
+      style={{ backgroundColor: CRM.mist }}
     >
       <ContentSeo path={location} />
       <div
         className="pointer-events-none fixed inset-0 -z-[5]"
         style={{
           background:
-            "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(37,211,102,0.18), transparent 50%), linear-gradient(180deg, rgba(247,251,248,0.45) 0%, rgba(247,251,248,0.78) 55%, #F7FBF8 100%)",
+            "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(20,184,166,0.16), transparent 50%), linear-gradient(180deg, rgba(244,251,249,0.45) 0%, rgba(244,251,249,0.78) 55%, #F4FBF9 100%)",
         }}
       />
       <MarketingHeader />

@@ -17,6 +17,8 @@ export interface PublicBillingPlan {
   maxWhatsappNumbers: number | null;
   maxTemplates: number | null;
   maxTeamSeats: number | null;
+  /** True when "Get Started" can really lead to Razorpay checkout right now. */
+  checkoutAvailable?: boolean;
 }
 
 function formatLimit(value: number | null | undefined): string {
@@ -30,23 +32,6 @@ export function usePublicPlans() {
   });
 }
 
-export function toMarketingPlanCards(plans: PublicBillingPlan[]) {
-  return plans.map((plan) => ({
-    id: plan.id,
-    name: plan.name,
-    tagline: plan.tagline,
-    price: plan.priceLabel,
-    featured: plan.featured,
-    features: plan.features,
-    cta: "Start free trial",
-    maxContacts: plan.maxContacts,
-    maxMessagesPerDay: plan.maxMessagesPerDay,
-    maxWhatsappNumbers: plan.maxWhatsappNumbers,
-    maxTemplates: plan.maxTemplates,
-    maxTeamSeats: plan.maxTeamSeats,
-  }));
-}
-
 export function buildPlanComparison(plans: PublicBillingPlan[]) {
   const rows = [
     {
@@ -58,7 +43,7 @@ export function buildPlanComparison(plans: PublicBillingPlan[]) {
       values: plans.map((p) => formatLimit(p.maxContacts)),
     },
     {
-      feature: "Team seats",
+      feature: "Users",
       values: plans.map((p) => formatLimit(p.maxTeamSeats)),
     },
     {

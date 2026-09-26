@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { nextFromSearch } from "@/lib/next-path";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -195,15 +196,20 @@ function LoginScene() {
 }
 
 const features = [
-  { icon: MessageCircle, text: "Bulk WhatsApp campaigns" },
-  { icon: Shield, text: "End-to-end encryption" },
-  { icon: Zap, text: "Real-time analytics" },
+  { icon: Zap, text: "Leads, deals and a visual sales pipeline" },
+  { icon: Shield, text: "Follow-ups and tasks so nothing slips" },
+  { icon: MessageCircle, text: "WhatsApp inbox and campaigns built in" },
 ];
 
 export default function Login() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  // ?mode=register opens the sign-up tab ("Get Started" / pricing buttons);
+  // ?next= is where to continue afterwards (e.g. the plan picked on Pricing).
+  const [mode, setMode] = useState<"login" | "register">(() =>
+    new URLSearchParams(window.location.search).get("mode") === "register" ? "register" : "login",
+  );
+  const nextPath = nextFromSearch(window.location.search);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -261,7 +267,7 @@ export default function Login() {
         predicate: (q) => q.queryKey[0] !== "/api/auth/user",
       });
       const destination =
-        data.user?.role === "super_admin" ? "/admin" : "/dashboard";
+        data.user?.role === "super_admin" ? "/admin" : nextPath ?? "/dashboard";
 
       // Login always happens on the root domain; the authenticated app
       // lives on the app.<domain> subdomain. Cross-subdomain requires a
@@ -308,18 +314,18 @@ export default function Login() {
               <h1 className="font-heading text-2xl font-bold text-[#075E54]">
                 ChatBoatAI
               </h1>
-              <p className="text-xs text-[#075E54]/60 tracking-wide">WhatsApp Business Platform</p>
+              <p className="text-xs text-[#075E54]/60 tracking-wide">CRM + WhatsApp Business</p>
             </div>
           </div>
 
           <h2 className="font-heading text-4xl xl:text-5xl font-bold text-[#075E54] leading-tight mb-6">
-            Scale your business
+            Manage your sales
             <br />
-            <span className="text-[#25D366]">conversations</span>
+            <span className="text-[#25D366]">in one CRM</span>
           </h2>
 
           <p className="text-lg text-[#075E54]/70 mb-10 leading-relaxed">
-            Send campaigns, manage conversations, and grow your audience — all from one powerful dashboard.
+            Leads, deals, follow-ups, tasks and WhatsApp conversations — all from one dashboard.
           </p>
 
           <div className="space-y-4">
@@ -337,22 +343,6 @@ export default function Login() {
             ))}
           </div>
 
-          <div className="mt-12 flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-8 w-8 rounded-full border-2 border-white bg-gradient-to-br from-[#25D366] to-[#128c7e] flex items-center justify-center text-[10px] font-bold text-white"
-                >
-                  {["A", "R", "S", "K"][i]}
-                </div>
-              ))}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#075E54]">Trusted by 500+ businesses</p>
-              <p className="text-xs text-[#075E54]/50">across India</p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -395,8 +385,8 @@ export default function Login() {
                 {mode === "login"
                   ? "Sign in to your workspace"
                   : startingPrice
-                    ? `Start your 3-day free trial — from ${startingPrice}/mo after`
-                    : "Start your 3-day free trial"}
+                    ? `Then choose a plan — from ${startingPrice}/month`
+                    : "Then choose a plan that fits your team"}
               </p>
             </div>
 
@@ -475,7 +465,18 @@ export default function Login() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-medium text-[#075E54]/70">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-xs font-medium text-[#075E54]/70">Password</Label>
+                  {mode === "login" && (
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-medium text-[#25D366] hover:text-[#20bd5a] hover:underline"
+                      data-testid="link-forgot-password"
+                    >
+                      Forgot password?
+                    </Link>
+                  )}
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
@@ -518,7 +519,7 @@ export default function Login() {
                   </span>
                 ) : (
                   <>
-                    {mode === "login" ? "Log In" : "Start free trial"}
+                    {mode === "login" ? "Log In" : "Create account"}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -529,7 +530,8 @@ export default function Login() {
               <div className="mt-5 flex items-start gap-2 rounded-xl bg-[#25D366]/5 p-3">
                 <CheckCircle2 className="h-4 w-4 text-[#25D366] mt-0.5 shrink-0" />
                 <p className="text-[11px] text-[#075E54]/60 leading-relaxed">
-                  No credit card required. Trial includes up to 100 contacts and 100 messages/day.
+                  After signing up, choose a plan and pay securely with Razorpay. Your plan activates as soon as
+                  the payment is verified.
                 </p>
               </div>
             )}

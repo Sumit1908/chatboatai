@@ -54,7 +54,7 @@ function typeLabel(type: string) {
 }
 
 export function AdminPaymentsPanel() {
-  const { data, isLoading } = useQuery<{ payments: AdminPayment[] }>({
+  const { data, isLoading, error } = useQuery<{ payments: AdminPayment[] }>({
     queryKey: ["/api/admin/payments"],
   });
 
@@ -90,6 +90,10 @@ export function AdminPaymentsPanel() {
         <CardContent className="pt-6">
           {isLoading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Loading payments…</p>
+          ) : error ? (
+            <p className="text-sm text-destructive py-8 text-center" data-testid="text-payments-error">
+              Could not load payments: {(error as Error).message.replace(/^\d+:\s*/, "")}
+            </p>
           ) : payments.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               No payments recorded yet. They appear after successful checkouts and Razorpay webhooks.

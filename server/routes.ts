@@ -4,11 +4,20 @@ import { storage } from "./storage";
 import { normalizePhone } from "./phone";
 import { insertTemplateSchema, insertCampaignSchema, insertMessageSchema, type WhatsAppAccount, type Template, type Notification as NotificationRecord, teamMembers } from "@shared/schema";
 import { db } from "@db";
+import { createCrmRepository, ensureCrmTables } from "./crm/repository";
+import {
+  claimNotificationForManualSend,
+  createNotificationScheduler,
+  type SendOutcome,
+} from "./notificationScheduler";
+import { registerCrmRoutes } from "./crm/routes";
+import { PLANNED_INTEGRATIONS, type CrmIntegrationStatus } from "@shared/crm";
+import { planCheckoutStatus, type BillingPlan } from "@shared/billingPlans";
 import { eq, and, desc, gte, sql as sqlOp } from "drizzle-orm";
 import { z } from "zod";
 import { authStorage } from "./auth/storage";
 import { isAuthenticated } from "./auth/localAuth";
-import { requireActiveSubscription, hasActiveSubscription, SUBSCRIPTION_REQUIRED_MESSAGE, requireVerifiedEmail, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from "./subscriptionGate";
+import { requireActiveSubscription, hasActiveSubscription, getAccessSource, SUBSCRIPTION_REQUIRED_MESSAGE, requireVerifiedEmail, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from "./subscriptionGate";
 import {
   assertCanAddContacts,
   assertCanSendMessages,
@@ -16,17 +25,14 @@ import {
   assertCanCreateTemplate,
   assertCanAddTeamSeat,
   countNewContactsForImport,
-  getTrialUsage,
   getPlanUsage,
-  isTrialUser,
-  getEffectiveTrialEndsAt,
-  TRIAL_DAYS,
-} from "./trialLimits";
+} from "./planLimits";
 import {
   ensureBillingPlansSeeded,
   listActiveBillingPlans,
   listAllBillingPlans,
   getBillingPlanById,
+  getBillingPlanByRazorpayPlanId,
   getDefaultBillingPlan,
   createBillingPlan,
   updateBillingPlan,
@@ -39,6 +45,7 @@ import {
   listPaymentsForUser,
   listAllPayments,
   getPaymentByIdForUser,
+  getPaymentByRazorpayId,
   paiseToInr,
 } from "./billingPayments";
 import { buildPaymentInvoiceHtml } from "./invoice";
@@ -326,6 +333,37 @@ export async function registerRoutes(
   });
   await ensureSubscriptionEndsAtColumn().catch((err) => {
     console.error("[Subscription] Column ensure failed:", err);
+  });
+  await ensureCrmTables(db).catch((err) => {
+    console.error("[CRM] Table ensure failed:", err);
+  });
+
+  // ============== CRM (leads, deals, follow-ups/tasks) ==============
+  // Tenant = the signed-in user; see server/crm/routes.ts.
+  registerCrmRoutes(app, {
+    repo: createCrmRepository(db),
+    isAuthenticated: isAuthenticated as RequestHandler,
+    getIntegrations: async (userId): Promise<CrmIntegrationStatus[]> => {
+      const accounts = await storage.getAccountsByUser(userId);
+      const connected = accounts.filter(isMetaApiConnected).length;
+      const whatsapp: CrmIntegrationStatus = connected
+        ? {
+            id: "whatsapp",
+            name: "WhatsApp",
+            status: "connected",
+            detail: `${connected} number${connected === 1 ? "" : "s"} connected`,
+          }
+        : {
+            id: "whatsapp",
+            name: "WhatsApp",
+            status: "available",
+            detail: accounts.length ? "Reconnect your number" : "Connect a WhatsApp Business number",
+          };
+      return [
+        whatsapp,
+        ...PLANNED_INTEGRATIONS.map((i) => ({ ...i, status: "coming_soon" as const, detail: "Coming soon" })),
+      ];
+    },
   });
 
   // ============== Queue monitoring ==============
@@ -1996,7 +2034,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Unauthorized" });
       }
       const account = await storage.getAccount(req.params.id);
-      if (!account || account.userId !== userId) {
+      // Own numbers, or numbers shared with this user as an active team member.
+      if (!account || !(await storage.userCanAccessAccount(userId, account))) {
         return res.status(403).json({ error: "Account not found or does not belong to you" });
       }
       await storage.setActiveAccount(userId, req.params.id);
@@ -2024,12 +2063,14 @@ export async function registerRoutes(
   });
 
   // Test connection for a specific WhatsApp account
-  app.post("/api/whatsapp-accounts/:id/test", isAuthenticated as RequestHandler, async (req, res) => {
+  app.post("/api/whatsapp-accounts/:id/test", isAuthenticated as RequestHandler, async (req: any, res) => {
     try {
       const accountId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      
+
       const account = await storage.getAccount(accountId);
-      if (!account) {
+      // Same "not found" answer for someone else's account: this route calls
+      // Meta with the account's stored token and updates its status.
+      if (!account || !(await storage.userCanAccessAccount(req.user.claims.sub, account))) {
         return res.json({ 
           success: false, 
           message: "Account not found" 
@@ -2093,13 +2134,13 @@ export async function registerRoutes(
   // Return Facebook App ID for SDK initialization (frontend needs this)
   // Protected to ensure only authenticated users can connect accounts
   app.get("/api/auth/facebook/config", isAuthenticated, (req: any, res) => {
+    // "Not configured" is a normal state (embedded signup off), not a server
+    // error - the sidebar skips the Facebook SDK and explains it on click.
+    // Answering 500 here put an error in the console on every app page.
     if (!FACEBOOK_APP_ID) {
-      return res.status(500).json({ 
-        error: "Facebook App ID not configured",
-        message: "Please add FACEBOOK_APP_ID to your secrets"
-      });
+      return res.json({ appId: null, configured: false });
     }
-    res.json({ appId: FACEBOOK_APP_ID });
+    res.json({ appId: FACEBOOK_APP_ID, configured: true });
   });
 
   // Handle Embedded Signup response from Facebook SDK
@@ -2966,6 +3007,52 @@ export async function registerRoutes(
     }
   });
 
+  // Client-editable notification fields only. Status counters, sentAt and
+  // failureReason are owned by the send path / scheduler; the template and
+  // lists must belong to the caller's WhatsApp account.
+  const notificationInputSchema = z.object({
+    name: z.string().trim().min(1, "Name is required").max(255).optional(),
+    templateId: z.string().min(1).max(64).optional(),
+    listIds: z.array(z.string().min(1).max(64)).max(200).optional(),
+    templateVariables: z.record(z.string().max(2000)).nullable().optional(),
+    headerMediaUrl: z.string().max(2048).nullable().optional(),
+    scheduledAt: z
+      .union([z.string(), z.null()])
+      .optional()
+      .transform((v, ctx) => {
+        if (v === undefined || v === null || v === "") return v === undefined ? undefined : null;
+        const d = new Date(v);
+        if (Number.isNaN(d.getTime())) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid scheduled time" });
+          return z.NEVER;
+        }
+        return d;
+      }),
+    status: z.enum(["draft", "scheduled"]).optional(),
+  });
+
+  async function parseNotificationInput(
+    body: unknown,
+    accountId: string,
+  ): Promise<{ ok: true; data: z.infer<typeof notificationInputSchema> } | { ok: false; error: string }> {
+    const parsed = notificationInputSchema.safeParse(body ?? {});
+    if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message || "Invalid notification" };
+    const data = parsed.data;
+    if (data.templateId) {
+      const template = await storage.getTemplate(data.templateId);
+      if (!template || template.accountId !== accountId) return { ok: false, error: "Template not found" };
+    }
+    for (const listId of data.listIds ?? []) {
+      const list = await storage.getList(listId);
+      if (!list || list.accountId !== accountId) return { ok: false, error: "Contact list not found" };
+    }
+    // A schedule in the past would fire immediately - ask for a real time instead.
+    if (data.scheduledAt instanceof Date && data.scheduledAt.getTime() < Date.now() - 60_000) {
+      return { ok: false, error: "Pick a scheduled time in the future" };
+    }
+    return { ok: true, data };
+  }
+
   app.post("/api/notifications", isAuthenticated as RequestHandler, async (req: any, res) => {
     try {
       const active = await getActiveAccount(req);
@@ -2981,7 +3068,18 @@ export async function registerRoutes(
           message: META_CONNECTION_REQUIRED_MESSAGE,
         });
       }
-      const notification = await storage.createNotification({ ...req.body, accountId: active.accountId });
+      const input = await parseNotificationInput(req.body, active.accountId);
+      if (!input.ok) return res.status(400).json({ error: input.error });
+      if (!input.data.name || !input.data.templateId) {
+        return res.status(400).json({ error: "Name and template are required" });
+      }
+      const { status: _status, ...fields } = input.data;
+      const notification = await storage.createNotification({
+        ...fields,
+        name: input.data.name,
+        templateId: input.data.templateId,
+        accountId: active.accountId,
+      });
       res.status(201).json(notification);
     } catch (error) {
       res.status(500).json({ error: "Failed to create notification" });
@@ -2996,7 +3094,24 @@ export async function registerRoutes(
       if (!existing || (existing.accountId && existing.accountId !== active.accountId)) {
         return res.status(404).json({ error: "Notification not found" });
       }
-      const notification = await storage.updateNotification(req.params.id, req.body);
+      // Editing (or re-scheduling) a campaign mid-send could make it go out twice.
+      if (existing.status === "sending") {
+        return res.status(409).json({ error: "This notification is sending and can't be edited right now." });
+      }
+      const input = await parseNotificationInput(req.body, active.accountId);
+      if (!input.ok) return res.status(400).json({ error: input.error });
+      const updates: Partial<NotificationRecord> = { ...input.data };
+      // Status follows the schedule: setting a time schedules it, clearing it
+      // returns it to draft. Clears any previous failure when rescheduled.
+      if (input.data.scheduledAt !== undefined) {
+        updates.status = input.data.scheduledAt ? "scheduled" : "draft";
+      }
+      if (updates.status === "scheduled") {
+        const when = input.data.scheduledAt ?? existing.scheduledAt;
+        if (!when) return res.status(400).json({ error: "Pick a scheduled time" });
+        updates.failureReason = null;
+      }
+      const notification = await storage.updateNotification(req.params.id, updates);
       if (!notification) {
         return res.status(404).json({ error: "Notification not found" });
       }
@@ -3163,6 +3278,187 @@ export async function registerRoutes(
     });
   }
 
+  /**
+   * Validates and starts sending a notification. Shared by "Send now"
+   * (POST /api/notifications/:id/send) and the scheduler, so both apply the
+   * same checks. `claimed` = the caller already moved it to "sending"
+   * atomically (the scheduler); otherwise it's claimed here, right before
+   * sending, so a send can never be started twice.
+   */
+  async function startNotificationSend(
+    notification: NotificationRecord,
+    senderUserId: string,
+    { claimed }: { claimed: boolean },
+  ): Promise<SendOutcome> {
+    const template = await storage.getTemplate(notification.templateId);
+    if (!template) {
+      return { ok: false, status: 400, error: "Notification template not found" };
+    }
+
+    if (template.status !== "APPROVED") {
+      return { ok: false, status: 400, error: "Template must be approved by WhatsApp before sending messages" };
+    }
+
+    const accounts = await storage.getAccountsByUser(senderUserId);
+    // Always send from the account this notification was created for - never
+    // silently substitute a different connected account, or a message can go
+    // out from the wrong WhatsApp number entirely.
+    const activeAccount = accounts.find(a => a.id === notification.accountId);
+
+    if (!activeAccount) {
+      return { ok: false, status: 400, error: "The WhatsApp account this notification belongs to was not found." };
+    }
+    if (!activeAccount.accessToken || !activeAccount.phoneNumberId) {
+      return { ok: false, status: 400, error: `${activeAccount.name} is missing API credentials. Please reconnect it in Settings.` };
+    }
+
+    const listIds = notification.listIds || [];
+    if (listIds.length === 0) {
+      return { ok: false, status: 400, error: "No recipient lists selected for this notification" };
+    }
+
+    const notificationAccountId = notification.accountId || activeAccount.id;
+
+    const components = (template.components as any[]) || [];
+    const headerComp = components.find((c: any) => c.type === "HEADER");
+    const bodyComp = components.find((c: any) => c.type === "BODY");
+
+    let headerParams: any[] | undefined;
+    try {
+      headerParams = await resolveTemplateHeaderParams(template, activeAccount, notification.headerMediaUrl || undefined);
+    } catch (mediaErr: any) {
+      return { ok: false, status: 400, error: mediaErr.message || "Failed to prepare header media for sending" };
+    }
+    if (headerComp && headerComp.format === "TEXT" && headerComp.text?.includes("{{")) {
+      const varCount = (headerComp.text.match(/\{\{\d+\}\}/g) || []).length;
+      if (varCount > 0) {
+        const templateVars = notification.templateVariables || {};
+        headerParams = Array(varCount).fill(null).map((_, i) => ({
+          type: "text",
+          text: templateVars[`header_${i + 1}`] || "N/A",
+        }));
+      }
+    }
+
+    let bodyParams: any[] | undefined;
+    if (bodyComp?.text?.includes("{{")) {
+      const varCount = (bodyComp.text.match(/\{\{\d+\}\}/g) || []).length;
+      if (varCount > 0) {
+        const templateVars = notification.templateVariables || {};
+        bodyParams = Array(varCount).fill(null).map((_, i) => ({
+          type: "text",
+          text: templateVars[`body_${i + 1}`] || "N/A",
+        }));
+      }
+    }
+
+    const conversationMediaUrl = headerComp && ["IMAGE", "VIDEO", "DOCUMENT"].includes(headerComp.format || "")
+      ? (notification.headerMediaUrl || headerComp.mediaUrl || undefined)
+      : undefined;
+    const bodyPreview = renderTemplatePreview(template, bodyParams);
+
+    // Claims the notification (unless the scheduler already did) and records
+    // the audience size. Returns an error outcome if a send is already running.
+    const beginSend = async (totalRecipients: number): Promise<SendOutcome | null> => {
+      if (!claimed && !(await claimNotificationForManualSend(db, notification.id, new Date()))) {
+        return { ok: false, status: 409, error: "This notification is already sending." };
+      }
+      await storage.updateNotification(notification.id, { status: "sending", totalRecipients });
+      return null;
+    };
+
+    if (isQueueEnabled()) {
+      // Count recipients via a streaming pass without holding the full list.
+      let totalRecipients = 0;
+      for await (const chunk of storage.getSubscribedPhoneChunksByLists(
+        notificationAccountId,
+        listIds,
+        CONTACT_STREAM_PAGE_SIZE,
+      )) {
+        totalRecipients += chunk.length;
+      }
+
+      if (totalRecipients === 0) {
+        return { ok: false, status: 400, error: "No subscribed contacts found in the selected lists" };
+      }
+
+      const user = await authStorage.getUser(senderUserId);
+      if (user) {
+        const limit = await assertCanSendMessages(user, totalRecipients);
+        if (!limit.ok) {
+          return { ok: false, status: 403, error: limit.code, message: limit.message };
+        }
+      }
+
+      const busy = await beginSend(totalRecipients);
+      if (busy) return busy;
+
+      const result = await enqueueBroadcast({
+        kind: "notification",
+        accountId: activeAccount.id,
+        campaignId: notification.id,
+        templateId: template.id,
+        templateName: template.name,
+        templateLanguage: template.language || "en",
+        phoneChunks: storage.getSubscribedPhoneChunksByLists(
+          notificationAccountId,
+          listIds,
+          CONTACT_STREAM_PAGE_SIZE,
+        ),
+        headerParams,
+        bodyParams,
+        bodyPreview,
+        conversationMediaUrl,
+        totalRecipients,
+      });
+
+      return {
+        ok: true,
+        body: {
+          message: `Notification queued. Sending to ${result.totalRecipients} recipients across ${result.jobCount} jobs (~${PHONES_PER_JOB}/job).`,
+          queued: true,
+          queueName: result.queueName,
+          jobCount: result.jobCount,
+          totalRecipients: result.totalRecipients,
+        },
+      };
+    }
+
+    // Fallback: stream into memory only when Redis is unavailable.
+    console.warn("[notification] Redis not configured — falling back to in-process send");
+    const recipientPhones: string[] = [];
+    const seen = new Set<string>();
+    for await (const chunk of storage.getSubscribedPhoneChunksByLists(notificationAccountId, listIds, CONTACT_STREAM_PAGE_SIZE)) {
+      for (const phone of chunk) {
+        if (!seen.has(phone)) {
+          seen.add(phone);
+          recipientPhones.push(phone);
+        }
+      }
+    }
+
+    if (recipientPhones.length === 0) {
+      return { ok: false, status: 400, error: "No subscribed contacts found in the selected lists" };
+    }
+
+    const user = await authStorage.getUser(senderUserId);
+    if (user) {
+      const limit = await assertCanSendMessages(user, recipientPhones.length);
+      if (!limit.ok) {
+        return { ok: false, status: 403, error: limit.code, message: limit.message };
+      }
+    }
+
+    const busy = await beginSend(recipientPhones.length);
+    if (busy) return busy;
+
+    return {
+      ok: true,
+      body: { message: `Notification sending started. Sending to ${recipientPhones.length} recipients.` },
+      run: () => runNotificationSend(notification, template, activeAccount, recipientPhones, headerParams, bodyParams),
+    };
+  }
+
   app.post("/api/notifications/:id/send", isAuthenticated as RequestHandler, requireVerifiedEmail, requireActiveSubscription, async (req: any, res) => {
     try {
       const notification = await storage.getNotification(req.params.id);
@@ -3170,172 +3466,49 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Notification not found" });
       }
 
-      const template = await storage.getTemplate(notification.templateId);
-      if (!template) {
-        return res.status(400).json({ error: "Notification template not found" });
+      const outcome = await startNotificationSend(notification, req.user.claims.sub, { claimed: false });
+      if (!outcome.ok) {
+        return res
+          .status(outcome.status)
+          .json(outcome.message ? { error: outcome.error, message: outcome.message } : { error: outcome.error });
       }
-
-      if (template.status !== "APPROVED") {
-        return res.status(400).json({ error: "Template must be approved by WhatsApp before sending messages" });
-      }
-
-      const userId = req.user?.claims?.sub;
-      const accounts = userId ? await storage.getAccountsByUser(userId) : await storage.getAccounts();
-      // Always send from the account this notification was created for - never
-      // silently substitute a different connected account, or a message can go
-      // out from the wrong WhatsApp number entirely.
-      const activeAccount = accounts.find(a => a.id === notification.accountId);
-
-      if (!activeAccount) {
-        return res.status(400).json({ error: "The WhatsApp account this notification belongs to was not found." });
-      }
-      if (!activeAccount.accessToken || !activeAccount.phoneNumberId) {
-        return res.status(400).json({ error: `${activeAccount.name} is missing API credentials. Please reconnect it in Settings.` });
-      }
-
-      const listIds = notification.listIds || [];
-      if (listIds.length === 0) {
-        return res.status(400).json({ error: "No recipient lists selected for this notification" });
-      }
-
-      const notificationAccountId = notification.accountId || activeAccount.id;
-
-      const components = (template.components as any[]) || [];
-      const headerComp = components.find((c: any) => c.type === "HEADER");
-      const bodyComp = components.find((c: any) => c.type === "BODY");
-
-      let headerParams: any[] | undefined;
-      try {
-        headerParams = await resolveTemplateHeaderParams(template, activeAccount, notification.headerMediaUrl || undefined);
-      } catch (mediaErr: any) {
-        return res.status(400).json({ error: mediaErr.message || "Failed to prepare header media for sending" });
-      }
-      if (headerComp && headerComp.format === "TEXT" && headerComp.text?.includes("{{")) {
-        const varCount = (headerComp.text.match(/\{\{\d+\}\}/g) || []).length;
-        if (varCount > 0) {
-          const templateVars = notification.templateVariables || {};
-          headerParams = Array(varCount).fill(null).map((_, i) => ({
-            type: "text",
-            text: templateVars[`header_${i + 1}`] || "N/A",
-          }));
-        }
-      }
-
-      let bodyParams: any[] | undefined;
-      if (bodyComp?.text?.includes("{{")) {
-        const varCount = (bodyComp.text.match(/\{\{\d+\}\}/g) || []).length;
-        if (varCount > 0) {
-          const templateVars = notification.templateVariables || {};
-          bodyParams = Array(varCount).fill(null).map((_, i) => ({
-            type: "text",
-            text: templateVars[`body_${i + 1}`] || "N/A",
-          }));
-        }
-      }
-
-      const conversationMediaUrl = headerComp && ["IMAGE", "VIDEO", "DOCUMENT"].includes(headerComp.format || "")
-        ? (notification.headerMediaUrl || headerComp.mediaUrl || undefined)
-        : undefined;
-      const bodyPreview = renderTemplatePreview(template, bodyParams);
-
-      if (isQueueEnabled()) {
-        // Count recipients via a streaming pass without holding the full list.
-        let totalRecipients = 0;
-        for await (const chunk of storage.getSubscribedPhoneChunksByLists(
-          notificationAccountId,
-          listIds,
-          CONTACT_STREAM_PAGE_SIZE,
-        )) {
-          totalRecipients += chunk.length;
-        }
-
-        if (totalRecipients === 0) {
-          return res.status(400).json({ error: "No subscribed contacts found in the selected lists" });
-        }
-
-        if (userId) {
-          const user = await authStorage.getUser(userId);
-          if (user) {
-            const limit = await assertCanSendMessages(user, totalRecipients);
-            if (!limit.ok) {
-              return res.status(403).json({ error: limit.code, message: limit.message });
-            }
-          }
-        }
-
-        await storage.updateNotification(notification.id, {
-          status: "sending",
-          sentAt: new Date(),
-          totalRecipients,
-        });
-
-        const result = await enqueueBroadcast({
-          kind: "notification",
-          accountId: activeAccount.id,
-          campaignId: notification.id,
-          templateId: template.id,
-          templateName: template.name,
-          templateLanguage: template.language || "en",
-          phoneChunks: storage.getSubscribedPhoneChunksByLists(
-            notificationAccountId,
-            listIds,
-            CONTACT_STREAM_PAGE_SIZE,
-          ),
-          headerParams,
-          bodyParams,
-          bodyPreview,
-          conversationMediaUrl,
-          totalRecipients,
-        });
-
-        return res.json({
-          message: `Notification queued. Sending to ${result.totalRecipients} recipients across ${result.jobCount} jobs (~${PHONES_PER_JOB}/job).`,
-          queued: true,
-          queueName: result.queueName,
-          jobCount: result.jobCount,
-          totalRecipients: result.totalRecipients,
-        });
-      }
-
-      // Fallback: stream into memory only when Redis is unavailable.
-      console.warn("[notification] Redis not configured — falling back to in-process send");
-      const recipientPhones: string[] = [];
-      const seen = new Set<string>();
-      for await (const chunk of storage.getSubscribedPhoneChunksByLists(notificationAccountId, listIds, CONTACT_STREAM_PAGE_SIZE)) {
-        for (const phone of chunk) {
-          if (!seen.has(phone)) {
-            seen.add(phone);
-            recipientPhones.push(phone);
-          }
-        }
-      }
-
-      if (recipientPhones.length === 0) {
-        return res.status(400).json({ error: "No subscribed contacts found in the selected lists" });
-      }
-
-      if (userId) {
-        const user = await authStorage.getUser(userId);
-        if (user) {
-          const limit = await assertCanSendMessages(user, recipientPhones.length);
-          if (!limit.ok) {
-            return res.status(403).json({ error: limit.code, message: limit.message });
-          }
-        }
-      }
-
-      await storage.updateNotification(notification.id, {
-        status: "sending",
-        sentAt: new Date(),
-        totalRecipients: recipientPhones.length,
-      });
-      res.json({ message: `Notification sending started. Sending to ${recipientPhones.length} recipients.` });
-
-      await runNotificationSend(notification, template, activeAccount, recipientPhones, headerParams, bodyParams);
+      res.json(outcome.body);
+      if (outcome.run) await outcome.run();
     } catch (error) {
       console.error("Notification send error:", error);
     }
   });
+
+  // Scheduled sends: the notification owner's account must still be allowed
+  // to send when the time comes (verified email, active plan, quota) -
+  // the same gates "Send now" applies through middleware.
+  const notificationScheduler = createNotificationScheduler({
+    db,
+    execute: async (notification) => {
+      const account = await storage.getAccount(notification.accountId);
+      if (!account) {
+        return { ok: false, status: 400, error: "The WhatsApp account this notification belongs to was not found." };
+      }
+      const owner = await authStorage.getUser(account.userId);
+      if (!owner) {
+        return { ok: false, status: 400, error: "The account owner no longer exists." };
+      }
+      if (owner.role !== "super_admin" && !owner.emailVerified) {
+        return { ok: false, status: 403, error: "email_verification_required", message: EMAIL_VERIFICATION_REQUIRED_MESSAGE };
+      }
+      if (!(await hasActiveSubscription(owner.id))) {
+        return {
+          ok: false,
+          status: 402,
+          error: "subscription_required",
+          message: "Not sent: the account had no active plan at the scheduled time.",
+        };
+      }
+      return startNotificationSend(notification, owner.id, { claimed: true });
+    },
+  });
+  const schedulerIntervalMs = Math.max(1000, Number(process.env.NOTIFICATION_SCHEDULER_INTERVAL_MS) || 30_000);
+  notificationScheduler.start(schedulerIntervalMs);
 
   // A large send can be silently interrupted by a server restart/redeploy
   // partway through, leaving the notification stuck showing "sending"
@@ -3670,7 +3843,9 @@ export async function registerRoutes(
   app.get("/api/team-members", isAuthenticated as RequestHandler, async (req: any, res) => {
     try {
       const active = await getActiveAccount(req);
-      if (!active) return res.status(401).json({ error: "No active account" });
+      // No WhatsApp number yet = no team to list (not an auth failure; the
+      // 401 showed up as an error on Settings for every CRM-only user).
+      if (!active) return res.json([]);
       const members = await storage.getTeamMembers(active.accountId);
       res.json(members);
     } catch (error) {
@@ -3687,10 +3862,15 @@ export async function registerRoutes(
 
       const { email, role } = req.body;
       if (!email) return res.status(400).json({ error: "Email is required" });
+      // Like removal: only the number's owner manages its team, so the user
+      // limit is always checked against the paying customer's plan.
+      if (active.account?.userId !== userId) {
+        return res.status(403).json({ error: "Only the account owner can invite team members." });
+      }
 
       const owner = await authStorage.getUser(userId);
       if (owner) {
-        const limit = await assertCanAddTeamSeat(owner, active.accountId);
+        const limit = await assertCanAddTeamSeat(owner, String(email));
         if (!limit.ok) {
           return res.status(402).json({ error: limit.code, message: limit.message });
         }
@@ -3717,7 +3897,13 @@ export async function registerRoutes(
     try {
       const active = await getActiveAccount(req);
       if (!active) return res.status(401).json({ error: "No active account" });
-      const removed = await storage.removeTeamMember(req.params.id);
+      // Only the account owner may remove members, and only their own
+      // account's members (previously any member id from any tenant).
+      const member = await storage.getTeamMemberById(req.params.id);
+      if (!member || member.accountId !== active.accountId || active.account?.userId !== active.userId) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      const removed = await storage.removeTeamMember(member.id);
       if (!removed) return res.status(404).json({ error: "Team member not found" });
       res.status(204).send();
     } catch (error) {
@@ -4608,7 +4794,10 @@ export async function registerRoutes(
       const planById = new Map(plans.map((p) => [p.id, p]));
       const totalUsers = allUsers.length;
       const activeUsers = allUsers.filter(u => u.subscriptionStatus === "active" || u.grantedFreeAccess).length;
-      const trialUsers = allUsers.filter(u => u.subscriptionStatus === "trial").length;
+      // Signed up but no plan (includes legacy "trial" rows from before trials were removed).
+      const noPlanUsers = allUsers.filter(
+        (u) => u.role !== "super_admin" && !u.grantedFreeAccess && !(u.hasPaid && u.subscriptionStatus === "active"),
+      ).length;
       const paidUsers = allUsers.filter(u => u.hasPaid).length;
       const mrrInr = allUsers
         .filter((u) => u.hasPaid && u.subscriptionStatus === "active" && u.billingPlanId)
@@ -4617,10 +4806,10 @@ export async function registerRoutes(
       res.json({
         totalUsers,
         activeUsers,
-        trialUsers,
+        noPlanUsers,
         paidUsers,
         mrrInr,
-        pendingApproval: allUsers.filter(u => u.subscriptionStatus === "inactive" && !u.grantedFreeAccess).length,
+        pendingApproval: allUsers.filter(u => (u.subscriptionStatus === "inactive" || u.subscriptionStatus === "trial") && !u.grantedFreeAccess).length,
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch admin stats" });
@@ -4628,10 +4817,18 @@ export async function registerRoutes(
   });
 
   // ============== Admin billing plans ==============
+  // Admin-only extras: the linked Razorpay plan id and whether customers can
+  // buy the plan right now (same rules as checkout). Not exposed publicly.
+  const serializeAdminPlan = (plan: BillingPlan) => ({
+    ...serializePlanForClient(plan),
+    razorpayPlanId: plan.razorpayPlanId,
+    checkout: planCheckoutStatus(plan, razorpayApi.isRazorpayConfigured()),
+  });
+
   app.get("/api/admin/plans", requireSuperAdmin, async (_req, res) => {
     try {
       const plans = await listAllBillingPlans();
-      res.json({ plans: plans.map((p) => serializePlanForClient(p)) });
+      res.json({ plans: plans.map((p) => serializeAdminPlan(p)) });
     } catch (error) {
       console.error("Failed to list plans:", error);
       res.status(500).json({ error: "Failed to list plans" });
@@ -4641,7 +4838,7 @@ export async function registerRoutes(
   app.post("/api/admin/plans", requireSuperAdmin, async (req: any, res) => {
     try {
       const plan = await createBillingPlan(req.body || {});
-      res.status(201).json({ plan: serializePlanForClient(plan) });
+      res.status(201).json({ plan: serializeAdminPlan(plan) });
     } catch (error: any) {
       console.error("Failed to create plan:", error);
       res.status(400).json({ error: error.message || "Failed to create plan" });
@@ -4652,7 +4849,7 @@ export async function registerRoutes(
     try {
       const plan = await updateBillingPlan(req.params.id, req.body || {});
       if (!plan) return res.status(404).json({ error: "Plan not found" });
-      res.json({ plan: serializePlanForClient(plan) });
+      res.json({ plan: serializeAdminPlan(plan) });
     } catch (error: any) {
       console.error("Failed to update plan:", error);
       res.status(400).json({ error: error.message || "Failed to update plan" });
@@ -4690,7 +4887,16 @@ export async function registerRoutes(
   app.get("/api/plans", async (_req, res) => {
     try {
       const plans = await listActiveBillingPlans();
-      res.json({ plans: plans.map((p) => serializePlanForClient(p)) });
+      // checkoutAvailable: whether "Get Started" can really lead to Razorpay
+      // checkout (same rule as checkout itself), so pricing pages never
+      // promise a purchase that would fail. A yes/no only - no internals.
+      const razorpayConfigured = razorpayApi.isRazorpayConfigured();
+      res.json({
+        plans: plans.map((p) => ({
+          ...serializePlanForClient(p),
+          checkoutAvailable: planCheckoutStatus(p, razorpayConfigured).canBuy,
+        })),
+      });
     } catch (error) {
       console.error("Failed to fetch public plans:", error);
       res.status(500).json({ error: "Failed to fetch plans" });
@@ -4834,9 +5040,8 @@ export async function registerRoutes(
       if (!rawUser) return res.status(404).json({ error: "User not found" });
       const user = await ensureSubscriptionFresh(rawUser);
 
-      const trialUsage = isTrialUser(user) ? await getTrialUsage(userId) : null;
       const planUsage = await getPlanUsage(user);
-      const effectiveTrialEndsAt = getEffectiveTrialEndsAt(user);
+      const accessSource = await getAccessSource(userId);
       const currentPlan = user.billingPlanId
         ? await getBillingPlanById(user.billingPlanId)
         : undefined;
@@ -4858,12 +5063,10 @@ export async function registerRoutes(
               amountInr: currentPlan.amountInr,
             }
           : null,
-        trialEndsAt: effectiveTrialEndsAt?.toISOString() ?? null,
         emailVerified: user.emailVerified,
-        isActive: await hasActiveSubscription(userId),
-        trialDays: TRIAL_DAYS,
-        isTrial: isTrialUser(user),
-        trialUsage,
+        isActive: accessSource !== "none",
+        // "team": using the paid plan of the owner of a shared WhatsApp number.
+        accessSource,
         planUsage,
       });
     } catch (error) {
@@ -4920,7 +5123,7 @@ export async function registerRoutes(
       const user = await authStorage.getUser(userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      if (!process.env.RAZORPAY_KEY_ID) {
+      if (!razorpayApi.isRazorpayConfigured()) {
         return res.status(500).json({ error: "Payments are not configured yet. Please try again later." });
       }
 
@@ -4944,6 +5147,7 @@ export async function registerRoutes(
         user.email || "",
         `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Customer",
         plan.id,
+        userId,
       );
 
       // Persist subscription id only — billingPlanId is set on payment confirm
@@ -4954,7 +5158,7 @@ export async function registerRoutes(
 
       res.json({
         subscriptionId: subscription.id,
-        keyId: process.env.RAZORPAY_KEY_ID,
+        keyId: razorpayApi.getPublicKeyId(),
         plan: {
           id: billingPlan.id,
           name: billingPlan.name,
@@ -4985,7 +5189,7 @@ export async function registerRoutes(
         });
       }
 
-      if (!process.env.RAZORPAY_KEY_ID) {
+      if (!razorpayApi.isRazorpayConfigured()) {
         return res.status(500).json({ error: "Payments are not configured yet. Please try again later." });
       }
 
@@ -5016,7 +5220,7 @@ export async function registerRoutes(
         orderId: order.id,
         amount: order.amount,
         currency: order.currency,
-        keyId: process.env.RAZORPAY_KEY_ID?.replace(/^["']|["']$/g, ""),
+        keyId: razorpayApi.getPublicKeyId(),
         differenceInr: quote.differenceInr,
         remainingCreditInr: quote.remainingCreditInr,
         usedValueInr: quote.usedValueInr,
@@ -5068,6 +5272,36 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing payment confirmation fields" });
       }
 
+      if (!razorpayApi.verifyPaymentSignature(orderId, paymentId, signature)) {
+        return res.status(400).json({ error: "Invalid payment signature" });
+      }
+
+      // Replay guard: a validly-signed paymentId never expires, so the same
+      // confirm request could otherwise be resubmitted (double-click, retry,
+      // or a stale client re-sending its last request) and re-extend the
+      // subscription with no new charge. Once this paymentId has already
+      // been recorded (by an earlier confirm or the payment.captured
+      // webhook), treat it as already applied. Checked before
+      // applyPlanUpgrade, which would otherwise reject the replay because
+      // the user is already on the target plan.
+      const alreadyProcessed = await getPaymentByRazorpayId(paymentId);
+      if (alreadyProcessed && alreadyProcessed.userId === userId) {
+        const appliedPlan = alreadyProcessed.billingPlanId
+          ? await getBillingPlanById(alreadyProcessed.billingPlanId)
+          : undefined;
+        return res.json({
+          message: "Plan upgraded successfully",
+          plan: appliedPlan
+            ? { id: appliedPlan.id, name: appliedPlan.name, priceLabel: appliedPlan.priceLabel }
+            : null,
+          differenceInr: alreadyProcessed.amountInr,
+          remainingCreditInr: 0,
+          subscriptionEndsAt: user.subscriptionEndsAt
+            ? new Date(user.subscriptionEndsAt).toISOString()
+            : null,
+        });
+      }
+
       const quote = await razorpayApi.applyPlanUpgrade({
         userId,
         razorpaySubscriptionId: user.razorpaySubscriptionId,
@@ -5095,7 +5329,7 @@ export async function registerRoutes(
         fromPlanId: quote.fromPlan.id,
         type: "upgrade",
         status: "captured",
-        amountInr: quote.differenceInr,
+        amountInr: quote.paidInr,
         razorpayPaymentId: paymentId,
         razorpayOrderId: orderId,
         razorpaySubscriptionId: user.razorpaySubscriptionId,
@@ -5139,12 +5373,53 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid payment signature" });
       }
 
-      if (user.razorpaySubscriptionId && user.razorpaySubscriptionId !== subscriptionId) {
+      // The signature only proves payment_id|subscription_id. The plan (and
+      // so the entitlement and recorded amount) must come from the
+      // subscription itself: trusting the body's planId let a user pay for
+      // the cheapest plan and confirm it as the most expensive one.
+      const checkout = await razorpayApi.fetchSubscriptionCheckout(subscriptionId);
+      const ownsSubscription = checkout.userId
+        ? checkout.userId === userId
+        : user.razorpaySubscriptionId === subscriptionId;
+      if (!ownsSubscription) {
         return res.status(400).json({ error: "Subscription mismatch" });
       }
+      const paidPlanId =
+        checkout.billingPlanId ??
+        (checkout.razorpayPlanId
+          ? (await getBillingPlanByRazorpayPlanId(checkout.razorpayPlanId))?.id
+          : undefined);
+      if (!paidPlanId) {
+        return res.status(400).json({ error: "Could not determine the plan for this subscription" });
+      }
+      if (paidPlanId !== planId) {
+        console.warn(
+          `[Subscription] confirm planId ${planId} differs from subscription ${subscriptionId} plan ${paidPlanId}; using the subscription's plan`,
+        );
+      }
 
-      const plan = await getBillingPlanById(planId);
+      const plan = await getBillingPlanById(paidPlanId);
       if (!plan) return res.status(400).json({ error: "Plan not found" });
+
+      // Replay guard: same reasoning as /api/subscription/upgrade/confirm —
+      // a validly-signed paymentId never expires, so without this check a
+      // resubmitted confirm request would re-extend the subscription with
+      // no new charge. Already-recorded payments are treated as already
+      // applied instead of being applied a second time.
+      const alreadyProcessed = await getPaymentByRazorpayId(paymentId);
+      if (alreadyProcessed) {
+        return res.json({
+          message: "Subscription activated",
+          plan: {
+            id: plan.id,
+            name: plan.name,
+            priceLabel: plan.priceLabel,
+          },
+          subscriptionEndsAt: user.subscriptionEndsAt
+            ? new Date(user.subscriptionEndsAt).toISOString()
+            : null,
+        });
+      }
 
       const endsAt = addMonths(new Date(), 1);
       await activatePaidPlan({
@@ -5208,9 +5483,26 @@ export async function registerRoutes(
 
       if (event === "subscription.activated" || event === "subscription.charged") {
         if (subscriptionId) {
-          const [user] = await db.select().from(users).where(eq(users.razorpaySubscriptionId, subscriptionId));
+          let [user] = await db.select().from(users).where(eq(users.razorpaySubscriptionId, subscriptionId));
+          // A second checkout overwrites users.razorpay_subscription_id, so
+          // fall back to the owner recorded on the subscription itself.
+          const notesUserId = subscriptionEntity?.notes?.userId;
+          if (!user && notesUserId) {
+            user = (await authStorage.getUser(String(notesUserId))) as typeof user;
+          }
           if (user) {
-            const planId = notesPlanId || user.billingPlanId;
+            // The subscription's current Razorpay plan is authoritative: its
+            // notes keep the plan it was *created* with, so after an upgrade
+            // (which moves the subscription to the new plan_id) preferring
+            // notes silently downgraded the user on every renewal.
+            const currentPlan = subscriptionEntity?.plan_id
+              ? await getBillingPlanByRazorpayPlanId(String(subscriptionEntity.plan_id))
+              : undefined;
+            const planId =
+              currentPlan?.id ||
+              (event === "subscription.charged"
+                ? user.billingPlanId || notesPlanId
+                : notesPlanId || user.billingPlanId);
             if (planId) {
               await activatePaidPlan({
                 userId: user.id,
@@ -5253,7 +5545,13 @@ export async function registerRoutes(
         }
       } else if (event === "payment.captured") {
         const notes = paymentEntity?.notes || {};
-        if (notes.type === "plan_upgrade" && notes.userId && notes.toPlanId) {
+        // Razorpay retries webhooks, and the client's /upgrade/confirm has
+        // usually applied this payment already - re-applying would restart
+        // the billing period from the retry's arrival time.
+        const alreadyRecorded = paymentEntity?.id
+          ? await getPaymentByRazorpayId(String(paymentEntity.id))
+          : undefined;
+        if (!alreadyRecorded && notes.type === "plan_upgrade" && notes.userId && notes.toPlanId) {
           const upgradeUser = await authStorage.getUser(String(notes.userId));
           const newPeriodEnd = addMonths(new Date(), 1);
           await activatePaidPlan({

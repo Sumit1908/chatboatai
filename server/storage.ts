@@ -91,6 +91,8 @@ export interface IStorage {
   getAnalyticsData(timeRange: string, accountId?: string): Promise<AnalyticsData>;
 
   getAccountsByUser(userId: string): Promise<WhatsAppAccount[]>;
+  userCanAccessAccount(userId: string, account: Pick<WhatsAppAccount, "id" | "userId">): Promise<boolean>;
+  getTeamMemberById(id: string): Promise<TeamMember | undefined>;
   getAccounts(): Promise<WhatsAppAccount[]>;
   getAccount(id: string): Promise<WhatsAppAccount | undefined>;
   createAccount(account: InsertWhatsAppAccount): Promise<WhatsAppAccount>;
@@ -698,7 +700,14 @@ export class DatabaseStorage implements IStorage {
       messagingUsed: Math.max(totalMessageRows, sentCount),
       throughputLevel: allAccounts[0]?.throughputLevel || null,
       qualityRating: (allAccounts[0]?.qualityRating as QualityScore) || "GREEN",
-      apiStatus: allAccounts.length > 0 ? "connected" : "disconnected",
+      // Same rule as isMetaApiConnected() in routes.ts (what sending checks):
+      // an account row alone isn't a working connection.
+      apiStatus: allAccounts.some(
+        (a) =>
+          (!a.status || a.status.toLowerCase() === "connected") && !!a.accessToken && !!a.phoneNumberId,
+      )
+        ? "connected"
+        : "disconnected",
       lastSyncedAt: lastSync ? lastSync.toISOString() : null,
     };
   }
@@ -1053,6 +1062,26 @@ export class DatabaseStorage implements IStorage {
     return [...ownAccounts, ...sharedAccounts];
   }
 
+  /** Owner, or a teammate with an *active* (accepted, not removed) membership. */
+  async userCanAccessAccount(
+    userId: string,
+    account: Pick<WhatsAppAccount, "id" | "userId">,
+  ): Promise<boolean> {
+    if (account.userId === userId) return true;
+    const [membership] = await db
+      .select({ id: teamMembers.id })
+      .from(teamMembers)
+      .where(
+        and(
+          eq(teamMembers.accountId, account.id),
+          eq(teamMembers.memberUserId, userId),
+          eq(teamMembers.status, "active"),
+        ),
+      )
+      .limit(1);
+    return !!membership;
+  }
+
   async getAccounts(): Promise<WhatsAppAccount[]> {
     return db.select().from(whatsappAccounts);
   }
@@ -1218,7 +1247,13 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
 
     if (joined[0]?.account) {
-      return { accountId: joined[0].accountId, account: joined[0].account };
+      const account = joined[0].account;
+      // The saved active account is only a preference - re-check access, or a
+      // teammate removed from a shared account would keep using it forever.
+      if (await this.userCanAccessAccount(userId, account)) {
+        return { accountId: joined[0].accountId, account };
+      }
+      await db.delete(activeAccounts).where(eq(activeAccounts.userId, userId));
     }
 
     const accountId = await this.getActiveAccountId(userId);
@@ -1697,9 +1732,22 @@ export class DatabaseStorage implements IStorage {
     return rows[0];
   }
 
+  async getTeamMemberById(id: string): Promise<TeamMember | undefined> {
+    const [row] = await db.select().from(teamMembers).where(eq(teamMembers.id, id)).limit(1);
+    return row;
+  }
+
   async removeTeamMember(id: string): Promise<boolean> {
-    const result = await db.delete(teamMembers).where(eq(teamMembers.id, id));
-    return (result.rowCount ?? 0) > 0;
+    const [removed] = await db.delete(teamMembers).where(eq(teamMembers.id, id)).returning();
+    if (!removed) return false;
+    // Drop the removed teammate's saved active-account pointer too, so they
+    // lose access immediately rather than on their next account switch.
+    if (removed.memberUserId) {
+      await db
+        .delete(activeAccounts)
+        .where(and(eq(activeAccounts.userId, removed.memberUserId), eq(activeAccounts.accountId, removed.accountId)));
+    }
+    return true;
   }
 
   async getTeamMemberByEmail(email: string, accountId: string): Promise<TeamMember | undefined> {

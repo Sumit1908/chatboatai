@@ -13,8 +13,12 @@ import { setupChecklist } from "@/lib/marketing-content";
 
 const troubleshooting = [
   {
+    issue: "Dashboard numbers look empty",
+    fix: "The dashboard is calculated from your own data. Add leads, create deals and mark deals Closed Won to see totals, pipeline and revenue.",
+  },
+  {
     issue: "Template rejected by Meta",
-    fix: "Check for promotional language without opt-out, missing variables, or unclear business identity. Our team helps rewrite rejected templates.",
+    fix: "Check for promotional language without opt-out, missing variables, or unclear business identity. Contact us if you need help understanding a rejection.",
   },
   {
     issue: "Number already on WhatsApp",
@@ -33,8 +37,8 @@ export default function SetupGuidePage() {
         <div className="container mx-auto max-w-6xl">
           <PageHero
             eyebrow="Setup guide"
-            title="Your path from signup to first campaign"
-            subtitle="Follow this interactive tree to connect Meta, approve templates, and launch your first WhatsApp broadcast on ChatBoatAI."
+            title="Your path from signup to a working CRM"
+            subtitle="Set up your leads, pipeline and follow-ups first, then connect WhatsApp to message customers from the same workspace."
             centered
           />
         </div>
@@ -47,7 +51,7 @@ export default function SetupGuidePage() {
               Interactive setup tree
             </h2>
             <p className="text-center text-[#075E54]/55 mb-6 text-sm">
-              Animated nodes show how each step connects — from Meta Business to your first send.
+              Animated nodes show how each step connects — from your first lead to your first WhatsApp campaign.
             </p>
           </FadeIn>
           <SetupTreeScene />
@@ -127,8 +131,8 @@ export default function SetupGuidePage() {
         <div className="container mx-auto max-w-3xl">
           <FadeIn>
             <MarketingCta
-              title="Ready to start setup?"
-              subtitle="Create your account and follow the in-app Settings wizard — we'll guide you every step."
+              title="Ready to set up your CRM?"
+              subtitle="Create your account, add your first leads, and connect WhatsApp whenever you're ready."
             />
           </FadeIn>
         </div>

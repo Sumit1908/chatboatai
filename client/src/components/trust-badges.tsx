@@ -47,8 +47,8 @@ export const TRUST_BADGES: TrustBadgeItem[] = [
   },
   {
     icon: FileCheck2,
-    label: "GST invoices",
-    sublabel: "India-ready billing",
+    label: "Payment receipts",
+    sublabel: "Download from Billing",
   },
   {
     icon: UserCheck,
@@ -58,7 +58,7 @@ export const TRUST_BADGES: TrustBadgeItem[] = [
   {
     icon: Headphones,
     label: "Human support",
-    sublabel: "Call & WhatsApp help",
+    sublabel: "Phone & email help",
   },
 ];
 
@@ -305,7 +305,7 @@ export function TrustBadgeBanner({
                 variant === "light" ? "text-[#075E54]" : "text-white",
               )}
             >
-              Trusted by teams who can&apos;t risk a ban
+              Built for teams who can&apos;t risk a ban
             </p>
             <p
               className={cn(
