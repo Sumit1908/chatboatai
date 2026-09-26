@@ -15,7 +15,7 @@ import { CheckoutAuthDialog } from "./checkout-auth-dialog";
  * same billing_plans rows Admin -> Pricing Plans edits - so prices, features,
  * "featured" and visibility are never duplicated in code.
  *
- * "Get Started" goes straight into the EXISTING Razorpay checkout (the shared
+ * "Pay Now" goes straight into the EXISTING Razorpay checkout (the shared
  * useRazorpayCheckout, also used by Billing). Only the plan id is sent; the
  * server prices it. Signed-out visitors first create an account / log in in a
  * dialog (a subscription must belong to an account), then checkout opens.
@@ -31,6 +31,10 @@ type CardAction =
   | { kind: "link"; href: string; label: string; note: string | null }
   | { kind: "pay"; upgrade: boolean; note: string | null }
   | { kind: "disabled"; label: string; note: string | null };
+
+/** Plans whose secondary button is "Contact Sales" instead of "Create Account". */
+const SALES_LED_SLUGS = new Set(["scale"]);
+const PAY_NOTE = "Secure Online Payment • Instant Account Activation";
 
 /** "Service: ..." features are support delivered by the team, not software. */
 const SERVICE_PREFIX = /^service:\s*/i;
@@ -140,10 +144,30 @@ export function PricingPlans() {
                   </>
                 ) : (
                   <>
-                    Get Started <ArrowRight className="h-4 w-4" aria-hidden />
+                    Pay Now <ArrowRight className="h-4 w-4" aria-hidden />
                   </>
                 )}
               </button>
+            );
+          }
+          // Secondary action: sales-led plans route to the existing contact flow;
+          // the rest link to the existing sign-up (there is no free trial).
+          const secondaryClass =
+            "mt-3 flex h-10 w-full items-center justify-center rounded-xl border border-[#04322E]/15 text-sm font-semibold text-[#04322E] transition-colors hover:border-[#14B8A6]/50 hover:bg-teal-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6] focus-visible:ring-offset-2";
+          let secondary: React.ReactNode = null;
+          if (SALES_LED_SLUGS.has(plan.slug)) {
+            if (!(action.kind === "link" && action.href === "/contact")) {
+              secondary = (
+                <Link href="/contact" className={secondaryClass} data-testid={`button-plan-secondary-${plan.slug}`}>
+                  Contact Sales
+                </Link>
+              );
+            }
+          } else if (!user) {
+            secondary = (
+              <a href="/login?mode=register" className={secondaryClass} data-testid={`button-plan-secondary-${plan.slug}`}>
+                Create Account
+              </a>
             );
           }
           return (
@@ -158,7 +182,7 @@ export function PricingPlans() {
               >
                 {plan.featured && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-[#14B8A6] to-[#0B6E66] px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                    Most popular
+                    Most Popular
                   </div>
                 )}
                 <h3 className="font-heading text-xl font-semibold text-[#04322E]">{plan.name}</h3>
@@ -195,13 +219,22 @@ export function PricingPlans() {
                   )}
                 </div>
                 {cta}
+                {action.kind === "pay" && (
+                  <p className="mt-2 text-center text-xs text-[#04322E]/55" data-testid={`plan-pay-note-${plan.slug}`}>
+                    {PAY_NOTE}
+                  </p>
+                )}
                 {action.note && <p className="mt-2 text-center text-xs text-[#04322E]/55">{action.note}</p>}
+                {secondary}
               </div>
             </FadeIn>
           );
         })}
       </div>
-      <p className="mt-8 text-center text-sm text-[#04322E]/55">
+      <p className="mt-10 text-center font-heading text-base font-semibold text-[#04322E]" data-testid="pricing-trust">
+        Trusted by Growing Businesses Across India
+      </p>
+      <p className="mt-3 text-center text-sm text-[#04322E]/55">
         Secure payments powered by Razorpay. Choose a plan and activate your subscription instantly. WhatsApp
         conversation charges are billed separately by Meta.
       </p>
