@@ -135,8 +135,7 @@ export default function Contact() {
                 <p className="text-muted-foreground">
                   ChatBoatAI Pvt. Ltd.<br />
                   412 Business Park, Tower C<br />
-                  Sector 62, Noida<br />
-                  Uttar Pradesh 201301, India
+                  Bengaluru, India
                 </p>
               </CardContent>
             </Card>
