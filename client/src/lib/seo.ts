@@ -1,5 +1,3 @@
-import { faqs } from "./marketing-content";
-
 /** Canonical production origin — must match the live app host. */
 export const SITE_URL = "https://chatboatai.in";
 export const SITE_NAME = "ChatBoatAI";
@@ -8,7 +6,7 @@ export const SITE_PUBLISHER = "ChatBoatAI";
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 export const DEFAULT_KEYWORDS =
-  "CRM software, CRM management software, lead management CRM, sales CRM, customer management, CRM integrations, CRM setup, CRM software India, ChatBoatAI";
+  "CRM software, CRM management, custom CRM setup, CRM configuration, CRM integration support, lead management CRM, sales CRM, real estate CRM, CRM software India, ChatBoatAI CRM";
 
 export type SeoRobots = "index, follow" | "noindex, nofollow" | "noindex, follow";
 
@@ -48,7 +46,7 @@ export function softwareApplicationJsonLd(): Record<string, unknown> {
     operatingSystem: "Web",
     url: SITE_URL,
     description:
-      "CRM software to manage leads, deals, sales pipelines, tasks, follow-ups and customer conversations, with CRM setup and integration help from the ChatBoatAI team.",
+      "CRM software to manage leads, deals, sales pipelines, tasks, follow-ups and customer conversations, with custom CRM setup, configuration and integration support from the ChatBoatAI team.",
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/pricing`,
@@ -78,21 +76,6 @@ export function breadcrumbJsonLd(
   };
 }
 
-export function faqPageJsonLd(): Record<string, unknown> {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((item) => ({
-      "@type": "Question",
-      name: item.q,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: item.a,
-      },
-    })),
-  };
-}
-
 export function contactPageJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -115,11 +98,11 @@ function crumbs(...trail: Array<{ name: string; path: string }>) {
 export const CONTENT_SEO: Record<string, SeoPageConfig> = {
   "/": {
     path: "/",
-    title: "ChatBoatAI — CRM Software to Build & Manage Your Business",
+    title: "ChatBoatAI CRM — CRM Software, Custom Setup & Integration Support",
     description:
-      "Build, manage and operate your complete CRM with ChatBoatAI. Manage leads, customers, sales pipelines, teams, follow-ups and integrations from one platform.",
+      "CRM software to manage leads, deals, sales pipelines and follow-ups from one dashboard, with custom CRM setup, configuration and integration support from the ChatBoatAI team.",
     keywords: DEFAULT_KEYWORDS,
-    jsonLd: [softwareApplicationJsonLd(), faqPageJsonLd()],
+    jsonLd: [softwareApplicationJsonLd()],
   },
   "/pricing": {
     path: "/pricing",

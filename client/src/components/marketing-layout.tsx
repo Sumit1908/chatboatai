@@ -99,11 +99,13 @@ export function PageHero({
   );
 }
 
-/** Site header (sticky, white). */
-export function MarketingHeader() {
+type Tone = "light" | "dark";
+
+/** Site header (sticky; white, or dark on the home page). */
+export function MarketingHeader({ tone = "light" }: { tone?: Tone }) {
   return (
     <div className="sticky top-0 z-50">
-      <MarketingNav />
+      <MarketingNav tone={tone} />
     </div>
   );
 }
@@ -136,18 +138,23 @@ function NavLink({
   );
 }
 
-function MarketingNav() {
+function MarketingNav({ tone }: { tone: Tone }) {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const dark = tone === "dark";
 
   const linkClass = (active: boolean) =>
-    `text-sm font-medium transition-colors duration-200 ${active ? "text-slate-900" : "text-slate-600 hover:text-slate-900"}`;
+    `text-sm font-medium transition-colors duration-200 ${
+      dark
+        ? active ? "text-white" : "text-slate-300 hover:text-white"
+        : active ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+    }`;
 
   return (
-    <nav className="border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <nav className={dark ? "border-b border-white/10 bg-slate-950/80 backdrop-blur-xl" : "border-b border-slate-200/80 bg-white/90 backdrop-blur-xl"}>
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4">
         <Link href="/" aria-label="ChatBoatAI home">
-          <BrandLogo className="cursor-pointer" />
+          <BrandLogo tone={dark ? "light" : "dark"} className="cursor-pointer" />
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
@@ -162,7 +169,9 @@ function MarketingNav() {
           <a
             href="/login"
             data-testid="nav-login"
-            className="hidden h-9 items-center rounded-lg px-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 sm:inline-flex"
+            className={`hidden h-9 items-center rounded-lg px-3 text-sm font-semibold transition-colors sm:inline-flex ${
+              dark ? "text-slate-200 hover:bg-white/10 hover:text-white" : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+            }`}
           >
             Login
           </a>
@@ -178,7 +187,9 @@ function MarketingNav() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 shrink-0 border-slate-200 text-slate-700 md:hidden"
+                className={`h-9 w-9 shrink-0 md:hidden ${
+                  dark ? "border-white/15 bg-transparent text-slate-200 hover:bg-white/10 hover:text-white" : "border-slate-200 text-slate-700"
+                }`}
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5" />
@@ -235,21 +246,24 @@ function MarketingNav() {
   );
 }
 
-export function MarketingFooter() {
-  const linkClass = "hover:text-slate-900";
+export function MarketingFooter({ tone = "light" }: { tone?: Tone }) {
+  const dark = tone === "dark";
+  const linkClass = dark ? "hover:text-white" : "hover:text-slate-900";
+  const headingClass = `mb-4 text-sm font-semibold ${dark ? "text-white" : "text-slate-900"}`;
+  const listClass = `space-y-2 text-sm ${dark ? "text-slate-400" : "text-slate-500"}`;
   return (
-    <footer className="border-t border-slate-200 bg-white px-4 py-10 sm:py-12">
+    <footer className={`border-t px-4 py-10 sm:py-12 ${dark ? "border-white/10 bg-slate-950" : "border-slate-200 bg-white"}`}>
       <div className="container mx-auto max-w-6xl">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
-            <BrandLogo className="mb-4" />
-            <p className="text-sm text-slate-500">
-              CRM software to manage leads, deals, follow-ups and your team - set up around your business.
+            <BrandLogo tone={dark ? "light" : "dark"} className="mb-4" />
+            <p className={`text-sm ${dark ? "text-slate-400" : "text-slate-500"}`}>
+              ChatBoatAI CRM - CRM software with custom setup, configuration and integration support.
             </p>
           </div>
           <div>
-            <p className="mb-4 text-sm font-semibold text-slate-900">Product</p>
-            <ul className="space-y-2 text-sm text-slate-500">
+            <p className={headingClass}>Product</p>
+            <ul className={listClass}>
               {PRIMARY_NAV.map(({ href, label }) => (
                 <li key={href}>
                   <NavLink href={href} className={linkClass}>
@@ -260,15 +274,15 @@ export function MarketingFooter() {
             </ul>
           </div>
           <div>
-            <p className="mb-4 text-sm font-semibold text-slate-900">Account</p>
-            <ul className="space-y-2 text-sm text-slate-500">
+            <p className={headingClass}>Account</p>
+            <ul className={listClass}>
               <li><a href="/login" className={linkClass}>Login</a></li>
               <li><a href="/login?mode=register" className={linkClass}>Sign Up</a></li>
             </ul>
           </div>
           <div>
-            <p className="mb-4 text-sm font-semibold text-slate-900">Legal</p>
-            <ul className="space-y-2 text-sm text-slate-500">
+            <p className={headingClass}>Legal</p>
+            <ul className={listClass}>
               <li><Link href="/terms" title="ChatBoatAI Terms of Service" className={linkClass}>Terms of Service</Link></li>
               <li><Link href="/privacy" title="ChatBoatAI Privacy Policy" className={linkClass}>Privacy Policy</Link></li>
               <li><Link href="/refund" title="ChatBoatAI Refund Policy" className={linkClass}>Refund Policy</Link></li>
@@ -276,7 +290,7 @@ export function MarketingFooter() {
             </ul>
           </div>
         </div>
-        <div className="mt-8 border-t border-slate-200 pt-6 text-center text-xs text-slate-400 sm:text-left sm:text-sm">
+        <div className={`mt-8 border-t pt-6 text-center text-xs sm:text-left sm:text-sm ${dark ? "border-white/10 text-slate-500" : "border-slate-200 text-slate-400"}`}>
           <p>&copy; {new Date().getFullYear()} ChatBoatAI. All rights reserved.</p>
         </div>
       </div>

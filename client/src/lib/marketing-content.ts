@@ -1,10 +1,15 @@
 import {
+  Briefcase,
+  Building2,
   CalendarClock,
   Contact,
   Headphones,
   KanbanSquare,
   LayoutDashboard,
+  Megaphone,
   MessageSquare,
+  Plug,
+  TrendingUp,
   UserPlus,
   Users,
   type LucideIcon,
@@ -13,17 +18,30 @@ import {
 /**
  * Copy for the public website. Every feature listed as available here must
  * work in the app today (checked against the code) - anything planned goes in
- * COMING_SOON, never in the feature list.
+ * COMING_SOON or is labelled "Coming Soon", never in the feature list. No
+ * unverified statistics and no invented testimonials.
  */
 
 /** Top navigation. `/#…` entries are sections of the home page. */
 export const PRIMARY_NAV = [
   { href: "/#product", label: "Product" },
+  { href: "/#integrations", label: "Integrations" },
+  { href: "/#how-it-works", label: "How It Works" },
   { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
-export type HomeFeature = {
+/** Hero illustration: what a ChatBoatAI CRM setup covers. */
+export const SETUP_ITEMS: { title: string; detail: string; status: "included" | "service" | "soon" }[] = [
+  { title: "Leads, deals & pipeline", detail: "Track every enquiry from New to Closed Won", status: "included" },
+  { title: "Tasks & follow-ups", detail: "Overdue, today and upcoming in one view", status: "included" },
+  { title: "Team access", detail: "Invite teammates up to your plan's user limit", status: "included" },
+  { title: "WhatsApp Business", detail: "Inbox and campaigns via Meta's official platform", status: "included" },
+  { title: "CRM configuration", detail: "Set up around your workflow by our team", status: "service" },
+  { title: "Meta Lead Ads", detail: "Facebook & Instagram lead capture", status: "soon" },
+];
+
+export type Feature = {
   id: string;
   icon: LucideIcon;
   title: string;
@@ -32,8 +50,8 @@ export type HomeFeature = {
   service?: boolean;
 };
 
-/** "Everything You Need to Run Your CRM" - all available in the app today. */
-export const HOME_FEATURES: HomeFeature[] = [
+/** "Why ChatBoatAI CRM" - all available in the app today, or a team service. */
+export const WHY_FEATURES: Feature[] = [
   {
     id: "leads",
     icon: UserPlus,
@@ -80,7 +98,7 @@ export const HOME_FEATURES: HomeFeature[] = [
     id: "setup",
     icon: Headphones,
     title: "Custom CRM Setup",
-    desc: "Need the CRM set up around your workflow? Our team can configure it and help with integrations.",
+    desc: "Our team configures the CRM, users, pipeline and supported integrations around your workflow.",
     service: true,
   },
 ];
@@ -93,37 +111,57 @@ export const COMING_SOON = [
   "CRM lead import",
 ];
 
-/**
- * Home page FAQ (also used for the FAQPage structured data). Answers describe
- * the product as it works today - no promises beyond it.
- */
-export const faqs = [
+/** "How it works" - the custom CRM setup service. */
+export const SETUP_STEPS = [
   {
-    q: "What is ChatBoatAI?",
-    a: "ChatBoatAI is a CRM platform for managing leads, deals, your sales pipeline, tasks and follow-ups - with WhatsApp built in for customer conversations and campaigns.",
+    title: "Tell Us Your Workflow",
+    desc: "We understand how your business currently manages leads, customers and sales.",
   },
   {
-    q: "Can you set up a CRM for our business?",
-    a: "Yes. Our team can configure ChatBoatAI around your workflow - how you track leads, your pipeline stages, your users and the supported integrations. Send us your requirements through the Contact page.",
+    title: "Configure Your CRM",
+    desc: "We configure the CRM, users, pipeline and supported integrations around your requirements.",
   },
   {
-    q: "Can we integrate our existing tools?",
-    a: "WhatsApp Business (through Meta's official platform) is available today. For other tools, tell us what you need on the Contact page and our team will discuss a custom integration with you.",
+    title: "Connect Your Channels",
+    desc: "Connect WhatsApp Business through Meta's official platform, and discuss any custom integration you need.",
   },
   {
-    q: "How many users can we have?",
-    a: "Each plan shows its user limit on the Pricing page. Every current plan includes up to 10 users, including you.",
-  },
-  {
-    q: "Can my team use the CRM?",
-    a: "Yes, up to your plan's user limit. Teammates share your WhatsApp numbers and inbox today. Leads, deals and tasks are currently kept per user - a shared team CRM with lead assignment and permissions is coming soon.",
-  },
-  {
-    q: "Can I manage leads and customers?",
-    a: "Yes. Add leads with their contact details, source, status and value, turn them into deals, move deals through your pipeline and schedule follow-ups.",
-  },
-  {
-    q: "How do I get started?",
-    a: "Create an account, choose a plan and pay securely with Razorpay. Your plan activates as soon as the payment is verified. For a custom setup, contact our team.",
+    title: "Run & Manage",
+    desc: "Your team uses the CRM while ChatBoatAI helps you manage configuration changes and integrations.",
   },
 ];
+
+/** "Who It's For". */
+export const AUDIENCES: Feature[] = [
+  {
+    id: "real-estate",
+    icon: Building2,
+    title: "Real Estate Companies",
+    desc: "Track property enquiries, site-visit follow-ups and deals through your sales pipeline.",
+  },
+  {
+    id: "agencies",
+    icon: Megaphone,
+    title: "Marketing Agencies",
+    desc: "Keep every campaign enquiry in one CRM and make sure each lead gets a follow-up.",
+  },
+  {
+    id: "sales",
+    icon: TrendingUp,
+    title: "Sales Organizations",
+    desc: "Track pipelines, deal values and conversions from one dashboard.",
+  },
+  {
+    id: "growing",
+    icon: Briefcase,
+    title: "Growing Businesses",
+    desc: "Get a CRM set up around your workflow without the technical complexity.",
+  },
+];
+
+/** Custom integration work offered as a service (used on the integrations grid). */
+export const CUSTOM_INTEGRATION = {
+  icon: Plug,
+  title: "CRM Integration Support",
+  desc: "Custom integrations available based on your business requirements. Tell us which tools your team uses and we'll discuss how to connect them.",
+};
